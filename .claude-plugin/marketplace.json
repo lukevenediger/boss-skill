@@ -1,0 +1,13 @@
+{
+  "name": "boss-skill",
+  "owner": { "name": "Luke Venediger" },
+  "plugins": [
+    {
+      "name": "boss",
+      "description": "Multi-session orchestration: boss / dev / tester / status roles with a live status page and conversation page.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": { "name": "Luke Venediger" }
+    }
+  ]
+}

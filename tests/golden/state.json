@@ -1,0 +1,186 @@
+{
+ "version": 2,
+ "run": {
+  "id": "w1",
+  "title": "W1 ingest",
+  "started": "2026-09-30",
+  "tz": "Africa/Johannesburg"
+ },
+ "header": {
+  "branch": "feat/w1-ingest",
+  "pr": "#216",
+  "image": "sha256:abc123",
+  "stack": "up",
+  "head": "98aadda",
+  "ci": "green"
+ },
+ "phases": [
+  {
+   "id": "P0",
+   "title": "Preflight",
+   "tests": [
+    {
+     "id": "P0.1",
+     "title": "Branch builds and gate passes locally",
+     "owner": "dev",
+     "state": "pass",
+     "evidence": "gate green locally",
+     "updated": "10:00"
+    },
+    {
+     "id": "P0.2",
+     "title": "Shared stack up on the run image",
+     "owner": "tester",
+     "state": "pass",
+     "evidence": null,
+     "updated": "10:00"
+    }
+   ]
+  },
+  {
+   "id": "P1",
+   "title": "Ingest",
+   "tests": [
+    {
+     "id": "T1.1",
+     "title": "Upload a supplier list",
+     "owner": "tester",
+     "state": "pass",
+     "evidence": "evidence/T1.1-upload.txt",
+     "updated": "10:00"
+    },
+    {
+     "id": "T1.2",
+     "title": "Duplicate offers are rejected",
+     "owner": "tester",
+     "state": "fail",
+     "evidence": "duplicate accepted, see D1",
+     "updated": "10:00"
+    },
+    {
+     "id": "T1.3",
+     "title": "Malformed rows are reported, not dropped",
+     "owner": "tester",
+     "state": "pending",
+     "evidence": null,
+     "updated": null
+    }
+   ]
+  },
+  {
+   "id": "P2",
+   "title": "Wrap",
+   "tests": [
+    {
+     "id": "T2.1",
+     "title": "CI green on the merge ref",
+     "owner": "boss",
+     "state": "blocked",
+     "evidence": "waiting on CI",
+     "updated": "10:00"
+    }
+   ]
+  },
+  {
+   "id": "PX",
+   "title": "Unplanned",
+   "tests": [
+    {
+     "id": "V9.9",
+     "title": "(unplanned)",
+     "owner": null,
+     "state": "running",
+     "evidence": null,
+     "updated": "10:00"
+    }
+   ]
+  }
+ ],
+ "defects": [
+  {
+   "id": "D1",
+   "sev": "major",
+   "title": "Duplicate offers accepted on re-upload",
+   "owner": "dev",
+   "status": "fix-pushed",
+   "commit": "98aadda",
+   "notes": [
+    "drift-guard test added"
+   ]
+  },
+  {
+   "id": "D2",
+   "sev": "minor",
+   "title": "Typo in upload banner",
+   "owner": "dev",
+   "status": "no-bug",
+   "commit": null,
+   "notes": [
+    "copy is per PRODUCT-FLOWS"
+   ]
+  }
+ ],
+ "team": [
+  {
+   "role": "boss",
+   "session": "w1-boss",
+   "model": "fable",
+   "state": "dormant",
+   "activity": "",
+   "since": null
+  },
+  {
+   "role": "dev",
+   "session": "w1-dev",
+   "model": "opus",
+   "state": "active",
+   "activity": "fixing D1",
+   "since": "09:40"
+  },
+  {
+   "role": "tester",
+   "session": "w1-tester",
+   "model": "sonnet",
+   "state": "active",
+   "activity": "running T1.x",
+   "since": "09:45"
+  },
+  {
+   "role": "status",
+   "session": "w1-status",
+   "model": "opus",
+   "state": "dormant",
+   "activity": "",
+   "since": null
+  },
+  {
+   "role": "reviewer",
+   "session": "w1-reviewer",
+   "model": null,
+   "state": "dormant",
+   "activity": "chartered, not yet briefed",
+   "since": "09:30"
+  }
+ ],
+ "owner_calls": [],
+ "log": [
+  {
+   "time": "10:00",
+   "text": "Owner cleared the docker prompt"
+  },
+  {
+   "time": "09:50",
+   "text": "D1 fix pushed, tester re-running T1.2"
+  }
+ ],
+ "remaining": "T1.2 re-test, then T2.1",
+ "outcome": {
+  "verdict": "NO-GO",
+  "text": "D1 not yet verified"
+ },
+ "mood": "fixing",
+ "mood_override": null,
+ "ambiguous": [
+  "TEST T1.2 BOGUS"
+ ]
+}

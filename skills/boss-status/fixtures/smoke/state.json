@@ -1,0 +1,59 @@
+{
+  "version": 7,
+  "run": { "id": "smoke", "title": "Smoke run — checkout flow", "started": "2026-09-30", "tz": "Africa/Johannesburg" },
+  "header": {
+    "branch": "feat/checkout-totals",
+    "pr": "#42 open",
+    "image": "c1d2e3f4",
+    "stack": "up · healthy",
+    "head": "a1b2c3d",
+    "ci": "8/9 · 1 pending"
+  },
+  "phases": [
+    {
+      "id": "P0", "title": "Preflight",
+      "tests": [
+        { "id": "P0.1", "title": "Stack boots on a fresh database", "owner": "tester", "state": "pass", "evidence": "`docker compose up -d` exit 0; 4/4 services healthy after 38s", "updated": "09:12" },
+        { "id": "P0.2", "title": "Image hash matches head commit", "owner": "tester", "state": "pass", "evidence": "image c1d2e3f4 built from a1b2c3d; md5 in container == md5 in worktree", "updated": "09:15" }
+      ]
+    },
+    {
+      "id": "P1", "title": "Checkout totals",
+      "tests": [
+        { "id": "T1.1", "title": "Cart total includes shipping and tax", "owner": "tester", "state": "fail", "evidence": "expected 118.80, got 108.00 — tax line missing when shipping is free; see D1", "updated": "09:41" },
+        { "id": "T1.2", "title": "Discount code applies once per order", "owner": "tester", "state": "running", "evidence": "", "updated": "09:50" },
+        { "id": "T1.3", "title": "Order confirmation email renders totals", "owner": "tester", "state": "pending", "evidence": "", "updated": "" }
+      ]
+    }
+  ],
+  "defects": [
+    {
+      "id": "D1", "sev": "major", "title": "Tax line dropped when shipping is free", "owner": "dev", "status": "open", "commit": "",
+      "notes": ["Repro: cart over the free-shipping threshold, any taxable SKU.", "Hypothesis: `applyShipping()` returns early before `applyTax()` runs."]
+    },
+    {
+      "id": "D2", "sev": "minor", "title": "Preflight seed script logs a deprecation warning", "owner": "dev", "status": "verified", "commit": "9f8e7d6",
+      "notes": ["Warning came from **node-fetch** v2; swapped for the built-in fetch."]
+    }
+  ],
+  "team": [
+    { "role": "boss", "session": "smoke-boss", "model": "opus", "state": "active", "activity": "Triaging D1, briefing dev", "since": "09:41" },
+    { "role": "dev", "session": "smoke-dev", "model": "opus", "state": "active", "activity": "Reproducing D1 in a unit test", "since": "09:44" },
+    { "role": "tester", "session": "smoke-tester", "model": "sonnet", "state": "needs-owner", "activity": "Running T1.2; held on `docker compose exec db psql`", "since": "09:50" },
+    { "role": "status", "session": "smoke-status", "model": "haiku", "state": "dormant", "activity": "Waiting for the next feed", "since": "09:52" }
+  ],
+  "owner_calls": [
+    { "role": "tester", "command": "docker compose exec db psql -c 'select * from orders'", "why": "permission prompt held in tester", "since": "09:50" }
+  ],
+  "log": [
+    { "time": "09:10", "text": "Run opened. Plan imported: 2 phases, 5 tests." },
+    { "time": "09:15", "text": "P0 complete. Image `c1d2e3f4` verified against head `a1b2c3d`." },
+    { "time": "09:41", "text": "T1.1 FAIL — D1 opened (major). Tax line dropped when shipping is free.\ncmd: curl -s localhost:3000/api/cart/total\nexpected: 118.80\nactual: 108.00\nSee https://example.com/runs/smoke/evidence/T1.1-total.txt for the full response." },
+    { "time": "09:50", "text": "Tester held on a permission prompt while running T1.2 — owner action needed." }
+  ],
+  "remaining": "T1.2 and T1.3 still to run. D1 needs a fix, gate, and a re-test before GO.",
+  "outcome": null,
+  "mood": "bug-found",
+  "mood_override": null,
+  "ambiguous": ["TEST T9 PASSED"]
+}

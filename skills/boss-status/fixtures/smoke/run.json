@@ -1,0 +1,16 @@
+{
+  "id": "smoke",
+  "title": "Smoke run — checkout flow",
+  "repo": "example/shop",
+  "branch": "feat/checkout-totals",
+  "tz": "Africa/Johannesburg",
+  "started": "2026-09-30",
+  "tools_dir": "/home/me/.claude/skills/boss-protocol/scripts",
+  "roles": [
+    { "role": "boss", "session": "smoke-boss", "model": "opus" },
+    { "role": "dev", "session": "smoke-dev", "model": "opus" },
+    { "role": "tester", "session": "smoke-tester", "model": "sonnet" },
+    { "role": "status", "session": "smoke-status", "model": "haiku" }
+  ],
+  "pages": { "status": "status.html", "conversation": "conversation.html" }
+}

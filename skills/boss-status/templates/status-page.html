@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>boss run</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one 960px column of panels; hero (pet + progress) first, then outcome, team, phases, tests, defects, log. */
+  :root {
+    --bg:#F2F3EF; --surface:#FFFFFF; --ink:#1B1F1A; --muted:#667064; --line:#D9DED6; --line-soft:#E8ECE6;
+    --ok:#2F7D4F; --ok-soft:#DCEFE2; --warn:#C97B12; --warn-soft:#FBEBD2; --bad:#B9402F; --bad-soft:#F7DDD8;
+    --info:#2C6E8F; --info-soft:#D9EAF3;
+    --shell:#DCE6D2; --shell-edge:#8FA67E; --shell-ink:#3B4A34;
+    --font-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: light;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#141715; --surface:#1C201D; --ink:#E8ECE7; --muted:#98A196; --line:#2C332E; --line-soft:#242A26;
+    --ok:#5FB57F; --ok-soft:#1F3A2A; --warn:#E3A044; --warn-soft:#3D2E15; --bad:#E0705F; --bad-soft:#40201B;
+    --info:#73B4D2; --info-soft:#17303C;
+    --shell:#2A3A2A; --shell-edge:#4F6B4F; --shell-ink:#B8CCB0; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg:#141715; --surface:#1C201D; --ink:#E8ECE7; --muted:#98A196; --line:#2C332E; --line-soft:#242A26;
+    --ok:#5FB57F; --ok-soft:#1F3A2A; --warn:#E3A044; --warn-soft:#3D2E15; --bad:#E0705F; --bad-soft:#40201B;
+    --info:#73B4D2; --info-soft:#17303C;
+    --shell:#2A3A2A; --shell-edge:#4F6B4F; --shell-ink:#B8CCB0; color-scheme: dark; }
+
+  * { box-sizing:border-box }
+  [hidden] { display:none !important }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); padding-block:28px 72px; padding-inline:16px }
+  main { max-width:960px; margin:0 auto; display:grid; gap:22px }
+  h1 { font-size:24px; font-weight:700; margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance; overflow-wrap:anywhere }
+  h2 { font:600 12px/1 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 14px }
+  .mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums }
+  code { font-family:var(--font-mono); font-size:.9em; background:var(--line-soft); padding:1px 5px; border-radius:4px; overflow-wrap:anywhere }
+  .note { color:var(--muted); font-size:13px; line-height:1.6; overflow-wrap:anywhere }
+  .empty { color:var(--muted); font-style:italic; font-size:13.5px }
+  a { color:var(--info) }
+  a:focus-visible, summary:focus-visible { outline:2px solid var(--ok); outline-offset:3px; border-radius:4px }
+
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px 22px; min-width:0 }
+  .hero { display:grid; grid-template-columns:208px 1fr; gap:26px; align-items:center }
+  .hero > div { min-width:0 }
+  @media (max-width:640px) { .hero { grid-template-columns:1fr; justify-items:center } .hero > div:last-child { width:100% } }
+
+  .pet { width:208px; height:208px; max-width:100%; background:var(--shell); border-radius:30px; border:4px solid var(--shell-edge); display:grid; place-items:center; position:relative; overflow:hidden }
+  .pet canvas { width:160px; height:160px; image-rendering:pixelated }
+  .pet .mood { position:absolute; top:10px; left:0; right:0; text-align:center; font:600 11px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--shell-ink) }
+  .pet .stagelbl { position:absolute; bottom:10px; left:0; right:0; text-align:center; font:500 11px/1 var(--font-mono); color:var(--shell-ink) }
+
+  .bar { height:12px; background:var(--line-soft); border-radius:6px; overflow:hidden; margin:12px 0 10px; display:flex }
+  .bar > .seg { height:100%; width:0; transition:width .6s ease }
+  .bar > .seg.pass { background:var(--ok) } .bar > .seg.fail { background:var(--bad) } .bar > .seg.blocked { background:var(--warn) }
+  .stats { display:flex; gap:22px; flex-wrap:wrap; color:var(--muted); font-size:13px }
+  .stats b { color:var(--ink); font-family:var(--font-mono); font-weight:600; font-variant-numeric:tabular-nums }
+
+  .runmeta { display:flex; flex-wrap:wrap; gap:8px 10px; margin:2px 0 4px }
+  .runmeta span { font:500 11px/1.3 var(--font-mono); letter-spacing:.04em; padding:5px 9px; border-radius:6px; background:var(--line-soft); color:var(--muted); overflow-wrap:anywhere }
+  .runmeta span b { color:var(--ink); font-weight:600 }
+  .runmeta span b code { background:none; padding:0; font-size:inherit }
+
+  .resume { border-color:var(--ok) }
+  .resume h2 { color:var(--ok) }
+  .resume .verdict { font:700 22px/1.2 var(--font-body); margin:0 0 8px; color:var(--ok); letter-spacing:-.01em }
+  .resume .owneraction { margin:0; font-size:15px; line-height:1.5; overflow-wrap:anywhere }
+  .resume.nogo { border-color:var(--bad) } .resume.nogo h2, .resume.nogo .verdict { color:var(--bad) }
+  .resume.pending { border-color:var(--line) } .resume.pending h2 { color:var(--muted) }
+  .resume h3.handoff { font:600 11px/1 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:18px 0 8px }
+  .resume .remaining { margin:0; font-size:14px; line-height:1.55; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere }
+
+  .team { display:grid; gap:2px }
+  .team .row { display:grid; grid-template-columns:170px 1fr auto; gap:6px 16px; align-items:baseline; padding:11px 0; border-top:1px solid var(--line-soft) }
+  .team .row:first-child { border-top:none; padding-top:0 }
+  .team .who { font:600 13px/1.4 var(--font-mono); min-width:0; overflow-wrap:anywhere }
+  .team .role { display:block; font:400 11px/1.5 var(--font-body); color:var(--muted) }
+  .team .doing { font-size:13.5px; line-height:1.5; min-width:0; overflow-wrap:anywhere }
+  .team .since { display:block; color:var(--muted); font:500 11px/1.6 var(--font-mono); margin-top:2px }
+  .team .state { font:600 10px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; padding:5px 9px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; gap:6px }
+  .team .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor }
+  .team .state.active { background:var(--ok-soft); color:var(--ok) }
+  .team .state.active::before { animation:pulse 1.4s infinite }
+  .team .state.dormant { background:var(--line-soft); color:var(--muted); opacity:.75 }
+  .team .state.needs-owner { background:var(--bad-soft); color:var(--bad) }
+  .team .state.needs-owner::before { animation:pulse 1s infinite }
+  .team .row[data-state="needs-owner"] .doing { color:var(--bad) }
+  @media (max-width:560px) { .team .row { grid-template-columns:1fr auto } .team .doing { grid-column:1 / -1 } }
+
+  .alert { background:var(--bad-soft); border:1px solid var(--bad); border-radius:14px; padding:16px 20px; display:grid; gap:8px }
+  .alert h2 { color:var(--bad); margin:0 }
+  .alert ul { list-style:none; margin:0; padding:0; display:grid; gap:7px }
+  .alert li { font-size:14px; line-height:1.5; color:var(--ink); overflow-wrap:anywhere }
+  .alert li b { font-family:var(--font-mono); font-size:13px }
+  .alert li .since { color:var(--muted); font:500 11px/1 var(--font-mono); margin-left:8px }
+
+  .milestones { display:grid; grid-template-columns:repeat(var(--n,8), minmax(0,1fr)); gap:0 }
+  @media (max-width:760px) { .milestones { grid-template-columns:repeat(4, minmax(0,1fr)); row-gap:18px } }
+  @media (max-width:420px) { .milestones { grid-template-columns:repeat(2, minmax(0,1fr)) } }
+  .ms { position:relative; padding:0 8px 0 0; font-size:13px; line-height:1.35; min-width:0; overflow-wrap:anywhere }
+  .ms .rail { height:4px; background:var(--line); border-radius:2px; margin-bottom:10px; position:relative }
+  .ms.done .rail { background:var(--ok) } .ms.active .rail { background:var(--warn) } .ms.bad .rail { background:var(--bad) }
+  .ms .num { font:600 11px/1 var(--font-mono); color:var(--muted); letter-spacing:.06em; display:block; margin-bottom:3px }
+  .ms.done .num { color:var(--ok) } .ms.active .num { color:var(--warn) } .ms.bad .num { color:var(--bad) }
+  .ms.active .rail::after { content:""; position:absolute; right:0; top:-3px; width:10px; height:10px; border-radius:50%; background:var(--warn); animation:pulse 1.2s infinite }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @media (prefers-reduced-motion: reduce) { .ms.active .rail::after, .team .state::before { animation:none } .bar > .seg { transition:none } }
+
+  details { border-top:1px solid var(--line-soft); padding:12px 0 }
+  details:first-of-type { border-top:none; padding-top:0 }
+  summary { cursor:pointer; font-weight:600; display:flex; align-items:center; gap:10px; list-style:none; padding:2px 0; min-width:0 }
+  summary::-webkit-details-marker { display:none }
+  summary .chev { width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(-45deg); transition:transform .15s; flex:none }
+  details[open] summary .chev { transform:rotate(45deg) }
+  summary .ttl { min-width:0; overflow-wrap:anywhere }
+  summary .pct { margin-left:auto; color:var(--muted); font:500 12px/1 var(--font-mono); font-variant-numeric:tabular-nums; flex:none }
+  summary .tag { font:600 10px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; background:var(--line-soft); color:var(--muted); flex:none }
+  summary.st-done .tag { background:var(--ok-soft); color:var(--ok) }
+  summary.st-running .tag { background:var(--warn-soft); color:var(--warn) }
+  summary.st-failed .tag, summary.st-blocked .tag { background:var(--bad-soft); color:var(--bad) }
+
+  ul.tasks { list-style:none; padding:0; margin:12px 0 0; display:grid; gap:8px }
+  ul.tasks li { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; font-size:14px }
+  ul.tasks li > label { min-width:0; overflow-wrap:anywhere }
+  ul.tasks input { margin:4px 0 0; accent-color:var(--ok); flex:none }
+  ul.tasks li.s-pass label { color:var(--muted) }
+  ul.tasks .tid { font:600 12px/1.5 var(--font-mono); letter-spacing:.02em; margin-right:7px }
+  ul.tasks .who { color:var(--muted); font:500 11px/1.5 var(--font-mono); margin-left:7px }
+  ul.tasks .ev { grid-column:2 / -1; color:var(--muted); font-size:12.5px; line-height:1.55; margin-top:-3px; overflow-wrap:anywhere }
+  ul.tasks .ev time { font:500 11px/1 var(--font-mono); margin-right:7px }
+  .chip { font:600 10px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; padding:5px 8px; border-radius:999px; background:var(--line-soft); color:var(--muted); white-space:nowrap; align-self:start }
+  .chip.pass { background:var(--ok-soft); color:var(--ok) }
+  .chip.fail { background:var(--bad-soft); color:var(--bad) }
+  .chip.blocked { background:var(--warn-soft); color:var(--warn) }
+  .chip.running { background:var(--info-soft); color:var(--info) }
+
+  .tablewrap { overflow-x:auto }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:640px }
+  th { text-align:left; font:600 11px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:0 12px 10px 0; border-bottom:1px solid var(--line) }
+  td { padding:11px 12px 11px 0; border-bottom:1px solid var(--line-soft); vertical-align:top }
+  td.empty { text-align:center; padding:22px 0 }
+  .sev { font:600 10px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; padding:4px 7px; border-radius:4px; white-space:nowrap }
+  .sev.blocker { background:var(--bad-soft); color:var(--bad) }
+  .sev.major { background:var(--warn-soft); color:var(--warn) }
+  .sev.minor { background:var(--line-soft); color:var(--muted) }
+  .dnote { display:block; color:var(--muted); font-size:12px; line-height:1.5; margin-top:7px; max-width:40ch }
+
+  .log { list-style:none; margin:0; padding:0; font-size:13px; display:grid }
+  .log > li { padding:10px 0; border-top:1px dashed var(--line-soft); display:flex; gap:10px; align-items:baseline; min-width:0; overflow-wrap:anywhere }
+  .log > li:first-child { border-top:none; padding-top:0 }
+  .log > li.has-details { display:block }
+  .log summary { font-weight:500; font-size:13px; gap:10px }
+  .log summary .ttl { flex:1 }
+  .log time { color:var(--muted); font:500 12px/1.6 var(--font-mono); flex:none }
+  .log .body { padding:8px 0 2px 18px; color:var(--muted); line-height:1.6; white-space:pre-wrap }
+  .log details { border-top:none; padding:0 }
+
+  footer { max-width:960px; margin:26px auto 0; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline; color:var(--muted); font:500 12px/1.6 var(--font-mono) }
+  footer .amb { color:var(--warn) }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<footer id="foot"></footer>
+
+<script id="boss-run" type="application/json">{}</script>
+<script id="boss-state" type="application/json">{}</script>
+<script>
+(function () {
+  const island = id => { try { const t = document.getElementById(id).textContent.trim(); return t ? JSON.parse(t) : {}; } catch (e) { return {}; } };
+  const run = island('boss-run') || {}, state = island('boss-state') || {};
+  const arr = v => Array.isArray(v) ? v : [];
+  const str = v => (v == null ? '' : String(v));
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = str(text); return n; };
+  const H = (parent, tag, cls, text) => { const n = el(tag, cls, text); parent.append(n); return n; };
+
+  // Tiny safe inline formatter: `code`, **bold**, bare https URLs. Everything else becomes a text node.
+  const INLINE = /(`[^`\n]+`|\*\*[^*\n]+\*\*|https?:\/\/[^\s<>"'`]+)/g;
+  function fmt(target, text) {
+    text = str(text); let last = 0, m; INLINE.lastIndex = 0;
+    while ((m = INLINE.exec(text))) {
+      if (m.index > last) target.append(text.slice(last, m.index));
+      let t = m[0], tail = '';
+      if (t[0] === '`') target.append(el('code', null, t.slice(1, -1)));
+      else if (t.startsWith('**')) target.append(el('b', null, t.slice(2, -2)));
+      else {
+        while (/[.,;:!?)]$/.test(t)) { tail = t.slice(-1) + tail; t = t.slice(0, -1); }
+        const a = el('a', null, t); a.href = t; a.target = '_blank'; a.rel = 'noopener'; target.append(a);
+        if (tail) target.append(tail);
+      }
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) target.append(text.slice(last));
+    return target;
+  }
+
+  const header = state.header || {}, srun = state.run || {};
+  const title = str(header.title || run.title || srun.title || 'boss run');
+  document.title = title;
+  const phases = arr(state.phases), defects = arr(state.defects), team = arr(state.team), calls = arr(state.owner_calls), log = arr(state.log);
+  const tests = phases.flatMap(p => arr(p.tests));
+  const n = { pass:0, fail:0, blocked:0, running:0, pending:0 };
+  tests.forEach(t => { const s = str(t.state || 'pending'); n[s] = (n[s] || 0) + 1; });
+  const total = tests.length, verdicts = n.pass + n.fail + n.blocked;
+  const openDefects = defects.filter(d => ['open', 'fixing', 'fix-pushed'].includes(str(d.status))).length;
+  const app = document.getElementById('app');
+
+  // Mood: explicit override, else the boss's MOOD line, else derived from run health (protocol §5).
+  let mood = str(state.mood_override || state.mood);
+  if (!mood || mood === 'auto') {
+    const ds = defects.map(d => str(d.status));
+    mood = (state.outcome && str(state.outcome.verdict) === 'GO') ? 'all-green'
+      : calls.length ? 'bug-found' : ds.includes('open') ? 'bug-found'
+      : ds.some(s => s === 'fixing' || s === 'fix-pushed') ? 'fixing'
+      : (n.running || team.some(m => str(m.state) === 'active')) ? 'testing' : 'idle';
+  }
+  app.dataset.mood = mood;
+
+  // 1. NEEDS-OWNER banner
+  const alert = H(app, 'section', 'alert'); alert.id = 'ownercall';
+  H(alert, 'h2', null, 'Owner action needed');
+  const ul = H(alert, 'ul');
+  calls.forEach(c => {
+    const li = H(ul, 'li');
+    li.append(el('b', null, str(c.session || c.role)), ' — ', el('code', null, str(c.command)), ' — ');
+    fmt(li, c.why);
+    if (c.since) li.append(el('span', 'since', 'since ' + c.since));
+  });
+  alert.hidden = calls.length === 0;
+
+  // 2. Hero
+  const hero = H(app, 'section', 'panel hero');
+  const pet = H(hero, 'div', 'pet'); pet.setAttribute('aria-label', 'Run-health mascot');
+  const moodEl = H(pet, 'div', 'mood'); const canvas = H(pet, 'canvas'); canvas.width = 32; canvas.height = 32;
+  const stagelbl = H(pet, 'div', 'stagelbl');
+  const hb = H(hero, 'div');
+  H(hb, 'h1', null, title);
+  const roles = arr(run.roles);
+  const noteBits = [];
+  if (run.repo) noteBits.push('repo ' + str(run.repo));
+  if (run.id) noteBits.push('run ' + str(run.id));
+  if (roles.length) noteBits.push(roles.length + ' sessions: ' + roles.map(r => str(r.session || r.role)).join(', '));
+  H(hb, 'div', 'note', noteBits.length ? noteBits.join(' · ') : 'run metadata not written yet');
+  const meta = H(hb, 'div', 'runmeta');
+  const chips = [['branch', header.branch || run.branch], ['PR', header.pr], ['image', header.image], ['stack', header.stack], ['head', header.head], ['CI', header.ci],
+    ['started', srun.started || run.started], ['tz', srun.tz || run.tz]];
+  chips.forEach(([k, v]) => { if (!v) return; const s = H(meta, 'span', null, k + ' '); fmt(H(s, 'b'), v); });
+  const bar = H(hb, 'div', 'bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100');
+  bar.setAttribute('aria-label', 'Tests with a verdict'); bar.setAttribute('aria-valuenow', String(total ? Math.round(verdicts / total * 100) : 0));
+  ['pass', 'fail', 'blocked'].forEach(k => { const seg = H(bar, 'div', 'seg ' + k); seg.style.width = (total ? n[k] / total * 100 : 0) + '%'; });
+  const stats = H(hb, 'div', 'stats');
+  const stat = (v, label) => { const s = H(stats, 'span'); s.append(el('b', null, v), ' ' + label); };
+  const sv = H(stats, 'span'); sv.append(el('b', null, verdicts), ' / ', el('b', null, total), ' with a verdict');
+  stat(n.pass, 'pass'); stat(n.fail, 'fail'); stat(n.blocked, 'blocked'); stat(n.running, 'running'); stat(openDefects, 'open defects');
+
+  // 3. Outcome / Remaining
+  const outcome = state.outcome && (state.outcome.verdict || state.outcome.text) ? state.outcome : null;
+  const remaining = str(state.remaining).trim();
+  if (outcome || remaining) {
+    const verdict = outcome ? str(outcome.verdict).toUpperCase() : '';
+    const sec = H(app, 'section', 'panel resume ' + (verdict === 'GO' ? 'go' : verdict ? 'nogo' : 'pending'));
+    if (outcome) {
+      H(sec, 'h2', null, 'Outcome');
+      H(sec, 'p', 'verdict', verdict || 'Outcome');
+      if (outcome.text) fmt(H(sec, 'p', 'owneraction'), outcome.text);
+      if (remaining) H(sec, 'h3', 'handoff', 'Remaining');
+    } else H(sec, 'h2', null, 'Remaining');
+    if (remaining) fmt(H(sec, 'p', 'remaining'), remaining);
+  }
+
+  // 4. Team
+  const teamSec = H(app, 'section', 'panel'); H(teamSec, 'h2', null, 'Team');
+  const needsOwner = new Set(calls.map(c => str(c.role)));
+  if (!team.length) H(teamSec, 'p', 'empty', 'no team announced yet');
+  const teamEl = H(teamSec, 'div', 'team');
+  team.forEach(m => {
+    const st = needsOwner.has(str(m.role)) ? 'needs-owner' : (['active', 'dormant', 'needs-owner'].includes(str(m.state)) ? str(m.state) : 'dormant');
+    const row = H(teamEl, 'div', 'row'); row.dataset.state = st;
+    const who = H(row, 'span', 'who', str(m.session || m.role));
+    H(who, 'span', 'role', [m.role, m.model].filter(Boolean).map(str).join(' · '));
+    const doing = H(row, 'span', 'doing'); fmt(doing, m.activity || '');
+    if (m.since) H(doing, 'span', 'since', 'since ' + m.since);
+    H(row, 'span', 'state ' + st, st.replace('-', ' '));
+  });
+
+  // 5. Phases rail
+  const phaseState = p => {
+    const s = arr(p.tests).map(t => str(t.state || 'pending')), passed = s.filter(x => x === 'pass').length;
+    return !s.length ? 'todo' : s.includes('fail') ? 'failed' : s.includes('blocked') ? 'blocked' : s.includes('running') ? 'running'
+      : passed === s.length ? 'done' : passed ? 'running' : 'todo';
+  };
+  const railClass = { done:'done', failed:'bad', blocked:'bad', running:'active', todo:'todo' };
+  const railSec = H(app, 'section', 'panel'); H(railSec, 'h2', null, 'Phases');
+  if (!phases.length) H(railSec, 'p', 'empty', 'plan not imported yet');
+  else {
+    const rail = H(railSec, 'div', 'milestones'); rail.style.setProperty('--n', String(Math.max(1, phases.length)));
+    phases.forEach(p => { const c = H(rail, 'div', 'ms ' + railClass[phaseState(p)]); H(c, 'div', 'rail'); H(c, 'span', 'num', str(p.id)); c.append(str(p.title)); });
+  }
+
+  // 6. Tests
+  const testSec = H(app, 'section', 'panel'); H(testSec, 'h2', null, 'Tests');
+  if (!phases.length) H(testSec, 'p', 'empty', 'plan not imported yet');
+  phases.forEach(p => {
+    const ts = arr(p.tests), ps = phaseState(p), passed = ts.filter(t => str(t.state) === 'pass').length;
+    const d = H(testSec, 'details'); d.open = true; d.dataset.phase = str(p.id);
+    const s = H(d, 'summary', 'st-' + ps); H(s, 'span', 'chev');
+    H(s, 'span', 'ttl', str(p.id) + (p.title ? ' — ' + str(p.title) : '')); H(s, 'span', 'tag', ps); H(s, 'span', 'pct', passed + '/' + ts.length);
+    const list = H(d, 'ul', 'tasks');
+    if (!ts.length) H(list, 'li', 'empty', 'no tests in this phase');
+    ts.forEach((t, i) => {
+      const st = str(t.state || 'pending'), li = H(list, 'li', 's-' + st); li.dataset.test = str(t.id);
+      const box = H(li, 'input'); box.type = 'checkbox'; box.id = 'chk-' + str(t.id).replace(/[^\w.-]/g, '_') + '-' + i; box.checked = st === 'pass'; box.disabled = true;
+      const label = H(li, 'label'); label.htmlFor = box.id;
+      label.append(el('span', 'tid', str(t.id)), str(t.title));
+      if (t.owner) H(label, 'span', 'who', str(t.owner));
+      H(li, 'span', 'chip ' + st, st);
+      if (t.evidence || t.updated) { const ev = H(li, 'div', 'ev'); if (t.updated) H(ev, 'time', null, str(t.updated)); fmt(ev, t.evidence || ''); }
+    });
+  });
+
+  // 7. Defects
+  const defSec = H(app, 'section', 'panel'); H(defSec, 'h2', null, 'Defects');
+  const wrap = H(defSec, 'div', 'tablewrap'), table = H(wrap, 'table'); table.id = 'defects';
+  const thead = H(table, 'thead'), hr = H(thead, 'tr');
+  ['ID', 'Sev', 'Title', 'Owner', 'Status', 'Commit'].forEach(h => H(hr, 'th', null, h));
+  const tbody = H(table, 'tbody');
+  const statusChip = { open:'fail', fixing:'running', 'fix-pushed':'running', verified:'pass', deferred:'', 'no-bug':'' };
+  if (!defects.length) { const tr = H(tbody, 'tr'); const td = H(tr, 'td', 'empty', 'no defects yet'); td.colSpan = 6; }
+  defects.forEach(d => {
+    const st = str(d.status || 'open'), sev = str(d.sev || 'minor'), tr = H(tbody, 'tr'); tr.dataset.defect = str(d.id); tr.dataset.status = st;
+    H(tr, 'td', 'mono', str(d.id));
+    H(H(tr, 'td'), 'span', 'sev ' + sev, sev);
+    const tt = H(tr, 'td'); fmt(tt, d.title); arr(d.notes).forEach(note => fmt(H(tt, 'span', 'dnote'), note));
+    H(tr, 'td', 'mono', str(d.owner || ''));
+    H(H(tr, 'td'), 'span', 'chip ' + (statusChip[st] || ''), st);
+    H(tr, 'td', 'mono', str(d.commit || ''));
+  });
+
+  // 8. Evidence log (newest first; first three open)
+  const logSec = H(app, 'section', 'panel'); H(logSec, 'h2', null, 'Log');
+  if (!log.length) H(logSec, 'p', 'empty', 'nothing logged yet');
+  const logEl = H(logSec, 'ul', 'log');
+  log.slice().reverse().forEach((e, i) => {
+    const text = str(e.text), nl = text.indexOf('\n'), long = text.length > 120 || nl >= 0;
+    const li = H(logEl, 'li', long ? 'has-details' : null);
+    if (!long) { H(li, 'time', null, str(e.time)); fmt(H(li, 'span'), text); return; }
+    const d = H(li, 'details'); d.open = i < 3;
+    const s = H(d, 'summary'); H(s, 'span', 'chev'); H(s, 'time', null, str(e.time));
+    const head = nl >= 0 ? text.slice(0, nl) : text.slice(0, 110) + '…';
+    fmt(H(s, 'span', 'ttl'), head);
+    fmt(H(d, 'div', 'body'), text);
+  });
+
+  // 9. Footer
+  const foot = document.getElementById('foot');
+  const link = H(foot, 'a', null, 'Conversation →'); link.href = str((run.pages && run.pages.conversation) || 'conversation.html');
+  H(foot, 'span', null, 'v' + str(state.version == null ? 0 : state.version) + ' · rendered by boss-status');
+  const amb = arr(state.ambiguous);
+  if (amb.length) { const a = H(foot, 'span', 'amb', amb.length + ' ambiguous feed line' + (amb.length === 1 ? '' : 's')); a.title = amb.map(str).join('\n'); }
+
+  // Pet: mood-coloured sprite, blinks and bobs unless motion is reduced.
+  const LABEL = { idle:'standing by', testing:'testing', 'bug-found':'bug found', fixing:'fixing', 'all-green':'all green' };
+  moodEl.textContent = LABEL[mood] || mood;
+  stagelbl.textContent = verdicts + '/' + total + ' tested';
+  const g = canvas.getContext('2d');
+  const PAL = { '.':null, k:'#2b2b2b', w:'#ffffff', b:'#5b8def', p:'#f7b6c2', y:'#ffd86b', g:'#6cbf84', r:'#e05a47', s:'#cfd8dc' };
+  const body = c => [
+    '............kk......kk..........','...........k'+c+c+'k....k'+c+c+'k.........','...........k'+c+c+c+'kkkk'+c+c+c+'k.........',
+    '..........k'+c.repeat(12)+'k........','.........k'+c.repeat(14)+'k.......','........k'+c.repeat(16)+'k......',
+    '........k'+c+c+c+'kk'+c.repeat(6)+'kk'+c+c+c+'k......','........k'+c+c+c+'kw'+c.repeat(6)+'kw'+c+c+c+'k......',
+    '.......k'+c.repeat(18)+'k.....','.......k'+c.repeat(9)+'rr'+c.repeat(7)+'k.....','.......k'+c.repeat(8)+'rrrr'+c.repeat(6)+'k.....',
+    '.......k'+c.repeat(18)+'k.....','.......k'+c.repeat(18)+'k.....','........k'+c.repeat(16)+'k......',
+    '........kk'+c.repeat(14)+'kk......','.......k'+c+c+'k'+c.repeat(12)+'k'+c+c+'k.....','.......k'+c+c+c+'k'+c.repeat(10)+'k'+c+c+c+'k.....',
+    '........kkkkkkkkkkkkkkkkkk......','.........k'+c+c+'k........k'+c+c+'k.......','.........kkkk........kkkk.......',
+    ...Array(12).fill('.'.repeat(32)),
+  ];
+  const COLOR = { idle:'s', testing:'b', 'bug-found':'r', fixing:'y', 'all-green':'g' };
+  const rowsPx = body(COLOR[mood] || 's');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let frame = 0;
+  function draw() {
+    g.clearRect(0, 0, 32, 32);
+    const bob = (!reduce && frame % 2 === 1 && mood !== 'idle') ? 1 : 0;
+    rowsPx.forEach((row, y) => { for (let x = 0; x < 32; x++) { const col = PAL[row[x]]; if (!col) continue;
+      const ch = (!reduce && frame % 6 === 5 && row[x] === 'w') ? 'k' : row[x];
+      g.fillStyle = PAL[ch] || col; g.fillRect(x, y + bob, 1, 1); } });
+    if (mood === 'bug-found') { g.fillStyle = '#e05a47'; g.fillRect(26, 2, 4, 4); }
+    if (mood === 'testing' && frame % 2) { g.fillStyle = '#ffd86b'; g.fillRect(2, 2, 2, 2); g.fillRect(28, 6, 2, 2); }
+    if (mood === 'all-green' && frame % 2) { g.fillStyle = '#ffd86b'; g.fillRect(3, 3, 2, 2); g.fillRect(27, 3, 2, 2); }
+    frame++;
+  }
+  draw(); if (!reduce) setInterval(draw, 500);
+})();
+</script>
+</body>
+</html>

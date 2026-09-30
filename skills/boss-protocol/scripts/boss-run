@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Thin wrapper: works as `bash <path>` even with the executable bit stripped.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+py="${BOSS_PYTHON:-}"
+if [ -z "$py" ]; then
+  if [ -x /opt/homebrew/bin/python3 ]; then py=/opt/homebrew/bin/python3; else py="$(command -v python3)"; fi
+fi
+exec "$py" "$here/boss-run.py" "$@"

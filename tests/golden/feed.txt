@@ -1,0 +1,24 @@
+# golden feed — every directive kind at least once; one deliberately malformed line
+HEADER branch=feat/w1-ingest pr="#216" image=sha256:abc123 stack=up head=98aadda ci=green
+TEAM dev ACTIVE — fixing D1 since 09:40
+TEAM tester ACTIVE — running T1.x since 09:45
+TEAM reviewer DORMANT — chartered, not yet briefed since 09:30
+TEST P0.1 PASS — gate green locally
+TEST P0.2 PASS
+TEST T1.1 PASS — evidence/T1.1-upload.txt
+TEST T1.2 FAIL — duplicate accepted, see D1
+TEST V9.9 RUNNING
+DEFECT D1 open major "Duplicate offers accepted on re-upload" owner dev
+DEFECT D1 fixing
+DEFECT D1 fix-pushed 98aadda — drift-guard test added
+DEFECT D2 open minor "Typo in upload banner" owner dev
+DEFECT D2 no-bug — copy is per PRODUCT-FLOWS
+OWNER tester NEEDS "docker compose up -d" — permission prompt held in tester
+OWNER tester CLEAR
+LOG 09:50 D1 fix pushed, tester re-running T1.2
+LOG Owner cleared the docker prompt
+REMAINING T1.2 re-test, then T2.1
+OUTCOME NO-GO — D1 not yet verified
+TEST T2.1 BLOCKED — waiting on CI
+
+TEST T1.2 BOGUS

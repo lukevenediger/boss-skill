@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>boss run</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: header panel across the top; below it a sticky thread rail (left, 220px) beside the message column; the rail stacks above on narrow screens. */
+  :root {
+    --bg:#F2F3EF; --surface:#FFFFFF; --ink:#1B1F1A; --muted:#667064; --line:#D9DED6; --line-soft:#E8ECE6;
+    --ok:#2F7D4F; --ok-soft:#DCEFE2; --warn:#C97B12; --warn-soft:#FBEBD2; --bad:#B9402F; --bad-soft:#F7DDD8;
+    --info:#2C6E8F; --info-soft:#D9EAF3; --gold:#8A6508; --gold-soft:#F6E7B6; --gold-edge:#D4A72C;
+    --shell:#DCE6D2; --shell-edge:#8FA67E; --shell-ink:#3B4A34;
+    --badge-bg-l:90%; --badge-fg-l:30%;
+    --font-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: light;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#141715; --surface:#1C201D; --ink:#E8ECE7; --muted:#98A196; --line:#2C332E; --line-soft:#242A26;
+    --ok:#5FB57F; --ok-soft:#1F3A2A; --warn:#E3A044; --warn-soft:#3D2E15; --bad:#E0705F; --bad-soft:#40201B;
+    --info:#73B4D2; --info-soft:#17303C; --gold:#F0C654; --gold-soft:#3D3012; --gold-edge:#B08A2E;
+    --shell:#2A3A2A; --shell-edge:#4F6B4F; --shell-ink:#B8CCB0; --badge-bg-l:22%; --badge-fg-l:78%; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg:#141715; --surface:#1C201D; --ink:#E8ECE7; --muted:#98A196; --line:#2C332E; --line-soft:#242A26;
+    --ok:#5FB57F; --ok-soft:#1F3A2A; --warn:#E3A044; --warn-soft:#3D2E15; --bad:#E0705F; --bad-soft:#40201B;
+    --info:#73B4D2; --info-soft:#17303C; --gold:#F0C654; --gold-soft:#3D3012; --gold-edge:#B08A2E;
+    --shell:#2A3A2A; --shell-edge:#4F6B4F; --shell-ink:#B8CCB0; --badge-bg-l:22%; --badge-fg-l:78%; color-scheme: dark; }
+
+  * { box-sizing:border-box }
+  [hidden] { display:none !important }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); padding-block:28px 72px; padding-inline:16px }
+  .wrap { max-width:1100px; margin:0 auto; display:grid; gap:22px }
+  h1 { font-size:24px; font-weight:700; margin:0; letter-spacing:-.01em; text-wrap:balance; overflow-wrap:anywhere }
+  h2 { font:600 12px/1 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 12px }
+  a { color:var(--info) }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline:2px solid var(--ok); outline-offset:3px; border-radius:4px }
+  .mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums }
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px 22px; min-width:0 }
+
+  .head { display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center }
+  .head > * { min-width:0 }
+  @media (max-width:640px) { .head { grid-template-columns:auto 1fr } .head .back { grid-column:1 / -1 } }
+  .eyebrow { font:600 11px/1 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px }
+  .petchip { width:64px; height:64px; background:var(--shell); border:3px solid var(--shell-edge); border-radius:16px; display:grid; place-items:center; position:relative }
+  .petchip canvas { width:48px; height:48px; image-rendering:pixelated }
+  .petchip .mood { position:absolute; bottom:-9px; left:50%; transform:translateX(-50%); font:600 9px/1 var(--font-mono); letter-spacing:.04em; text-transform:uppercase; color:var(--shell-ink); background:var(--shell); border:1px solid var(--shell-edge); padding:3px 6px; border-radius:999px; white-space:nowrap }
+  .runmeta { display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:8px }
+  .runmeta span { font:500 11px/1.3 var(--font-mono); letter-spacing:.04em; padding:5px 9px; border-radius:6px; background:var(--line-soft); color:var(--muted) }
+  .runmeta span b { color:var(--ink); font-weight:600 }
+  .back { font:500 13px/1.4 var(--font-body); white-space:nowrap }
+
+  .cols { display:grid; grid-template-columns:220px minmax(0,1fr); gap:22px; align-items:start }
+  @media (max-width:899px) { .cols { grid-template-columns:1fr } }
+  .rail { display:grid; gap:18px }
+  @media (min-width:900px) { .rail { position:sticky; top:calc(env(safe-area-inset-top,0px) + 12px); max-height:calc(100vh - 24px); overflow-y:auto } }
+  .threads { list-style:none; margin:0; padding:0; display:grid; gap:2px }
+  .threads button { width:100%; display:flex; justify-content:space-between; gap:8px; align-items:baseline; background:none; border:0; border-radius:8px; padding:7px 9px; font:500 13px/1.3 var(--font-mono); color:var(--ink); cursor:pointer; text-align:left }
+  .threads button:hover { background:var(--line-soft) }
+  .threads button.on { background:var(--ok-soft); color:var(--ok); font-weight:600 }
+  .threads button .n { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums }
+  .threads button.on .n { color:inherit }
+  .rolechips { display:flex; flex-wrap:wrap; gap:6px }
+  .toggles { display:grid; gap:6px }
+  .toggle { display:flex; gap:8px; align-items:center; background:none; border:1px solid var(--line); border-radius:999px; padding:6px 11px; font:500 12px/1 var(--font-mono); color:var(--muted); cursor:pointer; width:fit-content }
+  .toggle::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--line) }
+  .toggle.on { color:var(--ok); border-color:var(--ok) } .toggle.on::before { background:var(--ok) }
+  .rolechip { cursor:pointer; border:1px solid transparent }
+  .rolechip.off { opacity:.45 }
+
+  .badge { --h:200; display:inline-block; font:600 10px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; padding:5px 8px; border-radius:999px; white-space:nowrap;
+    background:hsl(var(--h) 45% var(--badge-bg-l)); color:hsl(var(--h) 55% var(--badge-fg-l)) }
+  .badge.owner { background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold-edge) }
+  .badge.needs { background:var(--bad-soft); color:var(--bad) }
+
+  .msgs { display:grid; gap:14px; min-width:0 }
+  .msg { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 18px 16px; min-width:0 }
+  .msg.needs-owner { border-color:var(--bad); box-shadow:0 0 0 1px var(--bad) inset }
+  .msg.from-owner { border-color:var(--gold-edge) }
+  .mh { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; font:500 12px/1.4 var(--font-mono); color:var(--muted) }
+  .mh .arrow { color:var(--muted) }
+  .mh .mid { color:var(--ink); font-weight:600 }
+  .mh .re { background:var(--line-soft); padding:3px 7px; border-radius:4px; font-size:11px }
+  .mh time { margin-left:auto; font-variant-numeric:tabular-nums }
+  .subject { font-weight:700; font-size:15px; margin:8px 0 6px; overflow-wrap:anywhere }
+  .replies { display:grid; gap:10px; margin-top:12px; padding-left:14px; border-left:3px solid var(--line-soft) }
+  .replies .msg { padding:12px 14px 13px; background:var(--bg) }
+  .empty { color:var(--muted); font-style:italic; font-size:13.5px; padding:24px 0; text-align:center }
+
+  .md { font-size:14px; line-height:1.6; overflow-wrap:anywhere; min-width:0 }
+  .md > :first-child { margin-top:0 } .md > :last-child { margin-bottom:0 }
+  .md p { margin:8px 0; white-space:pre-line }
+  .md h3, .md h4, .md h5 { margin:14px 0 6px; line-height:1.3 }
+  .md h3 { font-size:15px } .md h4 { font-size:14px } .md h5 { font:600 11px/1.4 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted) }
+  .md ul, .md ol { margin:6px 0; padding-left:22px } .md li { margin:2px 0 }
+  .md code { font-family:var(--font-mono); font-size:.9em; background:var(--line-soft); padding:1px 5px; border-radius:4px }
+  .md pre { margin:8px 0; padding:10px 12px; background:var(--line-soft); border-radius:8px; overflow-x:auto; font:12.5px/1.55 var(--font-mono) }
+  .md pre code { background:none; padding:0; font-size:inherit }
+  .md blockquote { margin:8px 0; padding:2px 0 2px 12px; border-left:3px solid var(--line); color:var(--muted) }
+  .md .tablewrap { overflow-x:auto; margin:8px 0 }
+  .md table { border-collapse:collapse; font-size:13px; min-width:320px }
+  .md th { text-align:left; font:600 10.5px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:0 14px 6px 0; border-bottom:1px solid var(--line) }
+  .md td { padding:6px 14px 6px 0; border-bottom:1px solid var(--line-soft); vertical-align:top }
+  .md details.evidence { margin:8px 0; border:1px solid var(--line); border-radius:8px; padding:0 }
+  .md details.evidence summary { cursor:pointer; list-style:none; display:flex; gap:8px; align-items:center; padding:7px 12px; font:600 10.5px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--info) }
+  .md details.evidence summary::-webkit-details-marker { display:none }
+  .md details.evidence summary::before { content:""; width:7px; height:7px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg); transition:transform .15s }
+  .md details.evidence[open] summary::before { transform:rotate(45deg) }
+  .md details.evidence pre { margin:0; border-radius:0 0 8px 8px }
+  @media (prefers-reduced-motion: reduce) { .md details.evidence summary::before { transition:none } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="panel head" id="head"></header>
+  <div class="cols">
+    <aside class="rail" id="rail"></aside>
+    <section class="msgs" id="msgs" aria-live="polite"></section>
+  </div>
+</div>
+
+<script id="boss-run" type="application/json">{}</script>
+<script id="boss-state" type="application/json">{}</script>
+<script id="boss-conversation" type="application/json">[]</script>
+<script>
+(function () {
+  const island = (id, dflt) => { try { const t = document.getElementById(id).textContent.trim(); return t ? JSON.parse(t) : dflt; } catch (e) { return dflt; } };
+  const run = island('boss-run', {}) || {}, state = island('boss-state', {}) || {};
+  const recs = (Array.isArray(island('boss-conversation', [])) ? island('boss-conversation', []) : []).filter(r => r && typeof r === 'object');
+  const str = v => (v == null ? '' : String(v));
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = str(text); return n; };
+  const H = (parent, tag, cls, text) => { const n = el(tag, cls, text); parent.append(n); return n; };
+  const tz = str((state.run && state.run.tz) || run.tz);
+  const title = str((state.header && state.header.title) || run.title || (state.run && state.run.title) || 'boss run');
+  document.title = title + ' \u2014 conversation';
+
+  // ---- inline + block markdown, emitted as DOM nodes (text is never parsed as HTML) ----
+  const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+?\*\*)|(\*[^*\s][^*\n]*?\*)|(\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<>"'`]+)/g;
+  function inline(target, text) {
+    text = str(text); let last = 0, m; const re = new RegExp(INLINE.source, 'g');
+    while ((m = re.exec(text))) {
+      if (m.index > last) target.append(text.slice(last, m.index));
+      const t = m[0];
+      if (m[1]) target.append(el('code', null, t.slice(1, -1)));
+      else if (m[2]) inline(H(target, 'strong'), t.slice(2, -2));
+      else if (m[3]) inline(H(target, 'em'), t.slice(1, -1));
+      else if (m[4]) { const a = H(target, 'a'); a.href = m[6]; a.target = '_blank'; a.rel = 'noopener'; inline(a, m[5]); }
+      else { let u = t, tail = ''; while (/[.,;:!?)]$/.test(u)) { tail = u.slice(-1) + tail; u = u.slice(0, -1); }
+        const a = H(target, 'a', null, u); a.href = u; a.target = '_blank'; a.rel = 'noopener'; if (tail) target.append(tail); }
+      last = m.index + t.length;
+    }
+    if (last < text.length) target.append(text.slice(last));
+    return target;
+  }
+  const isFence = l => /^```/.test(l), isHead = l => /^#{1,6}\s+/.test(l), isQuote = l => /^>\s?/.test(l);
+  const isUl = l => /^\s*[-*+]\s+/.test(l), isOl = l => /^\s*\d+[.)]\s+/.test(l), isRow = l => /^\s*\|/.test(l);
+  const isBlockStart = l => isFence(l) || isHead(l) || isQuote(l) || isUl(l) || isOl(l) || isRow(l) || !l.trim();
+  const cells = l => { const p = l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim()); return p; };
+  function md(target, text, opts) {
+    const lines = str(text).replace(/\r\n?/g, '\n').split('\n'); let i = 0;
+    while (i < lines.length) {
+      const l = lines[i];
+      if (!l.trim()) { i++; continue; }
+      if (isFence(l)) {
+        const lang = l.slice(3).trim().toLowerCase(); const buf = []; i++;
+        while (i < lines.length && !isFence(lines[i])) buf.push(lines[i++]); i++;
+        let host = target;
+        if (lang === 'evidence') { const d = H(target, 'details', 'evidence'); d.open = !!opts.expand; H(d, 'summary', null, 'evidence'); host = d; }
+        const pre = H(host, 'pre'); if (lang) pre.dataset.lang = lang; H(pre, 'code', null, buf.join('\n')); continue;
+      }
+      if (isHead(l)) { const m = l.match(/^(#{1,6})\s+(.*)$/); inline(H(target, 'h' + Math.min(5, m[1].length + 2)), m[2].replace(/\s#+$/, '')); i++; continue; }
+      if (isQuote(l)) { const buf = []; while (i < lines.length && isQuote(lines[i])) buf.push(lines[i++].replace(/^>\s?/, '')); md(H(target, 'blockquote'), buf.join('\n'), opts); continue; }
+      if (isRow(l) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+        const wrap = H(target, 'div', 'tablewrap'), tbl = H(wrap, 'table'), tr = H(H(tbl, 'thead'), 'tr');
+        cells(l).forEach(c => inline(H(tr, 'th'), c)); i += 2;
+        const tb = H(tbl, 'tbody');
+        while (i < lines.length && isRow(lines[i])) { const r = H(tb, 'tr'); cells(lines[i++]).forEach(c => inline(H(r, 'td'), c)); }
+        continue;
+      }
+      if (isUl(l) || isOl(l)) {
+        const ordered = isOl(l), test = ordered ? isOl : isUl, list = H(target, ordered ? 'ol' : 'ul');
+        while (i < lines.length && test(lines[i])) {
+          const li = H(list, 'li'); let item = lines[i++].replace(ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/, '');
+          while (i < lines.length && lines[i].trim() && /^\s{2,}/.test(lines[i]) && !test(lines[i])) item += ' ' + lines[i++].trim();
+          inline(li, item);
+        }
+        continue;
+      }
+      const buf = [l]; i++;
+      while (i < lines.length && !isBlockStart(lines[i])) buf.push(lines[i++]);
+      inline(H(target, 'p'), buf.join('\n')); // single newlines survive (pre-line): feed lines and defect reports are line-structured
+    }
+    return target;
+  }
+
+  // ---- roles, colours, times ----
+  const HUE = { boss:262, dev:206, tester:146, status:28, owner:44 };
+  const hue = r => { if (HUE[r] != null) return HUE[r]; let h = 0; for (const ch of r) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 360; };
+  const badge = (parent, role, extra) => { const b = H(parent, 'span', 'badge' + (role === 'owner' ? ' owner' : '') + (extra ? ' ' + extra : ''), role || '?'); b.style.setProperty('--h', String(hue(role))); return b; };
+  function hhmm(ts) {
+    const d = new Date(str(ts)); const fallback = () => { const m = str(ts).match(/T(\d\d:\d\d)/); return m ? m[1] : str(ts); };
+    if (isNaN(d.getTime())) return fallback();
+    try { return new Intl.DateTimeFormat('en-GB', { timeZone: tz || undefined, hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(d); } catch (e) { return fallback(); }
+  }
+  const rank = re => { const m = re.match(/^([A-Z]+)(\d+)?(?:\.(\d+))?/); const order = { RUN:0, OWNER:1, P:2, T:3, D:4, M:5 };
+    return [m && order[m[1]] != null ? order[m[1]] : 6, m && m[2] ? +m[2] : 0, m && m[3] ? +m[3] : 0, re]; };
+  const cmp = (a, b) => { const x = rank(a), y = rank(b); for (let i = 0; i < 4; i++) { if (x[i] < y[i]) return -1; if (x[i] > y[i]) return 1; } return 0; };
+
+  // ---- header ----
+  const head = document.getElementById('head');
+  const chip = H(head, 'div', 'petchip'); const canvas = H(chip, 'canvas'); canvas.width = 32; canvas.height = 32; const moodEl = H(chip, 'div', 'mood');
+  const hb = H(head, 'div'); H(hb, 'div', 'eyebrow', 'Conversation'); H(hb, 'h1', null, title);
+  const meta = H(hb, 'div', 'runmeta');
+  [['run', run.id || (state.run && state.run.id)], ['messages', recs.length], ['v', state.version == null ? 0 : state.version, true]].forEach(([k, v, tight]) => {
+    if (v == null || v === '') return; const s = H(meta, 'span', null, tight ? k : k + ' '); H(s, 'b', null, v); });
+  const back = H(head, 'a', 'back', '\u2190 Status page'); back.href = str((run.pages && run.pages.status) || 'status.html');
+
+  // ---- rail: threads, role chips, toggles ----
+  const rail = document.getElementById('rail'), msgs = document.getElementById('msgs');
+  const view = { thread: null, roles: new Set(), newest: false, expand: false };
+  const threadCounts = new Map();
+  recs.forEach(r => { const k = str(r.re || 'RUN'); threadCounts.set(k, (threadCounts.get(k) || 0) + 1); });
+  const threadNames = [...threadCounts.keys()].sort(cmp);
+  const ROLE_ORDER = ['boss', 'dev', 'tester', 'status', 'owner'];
+  const roleIdx = r => { const i = ROLE_ORDER.indexOf(r); return i < 0 ? ROLE_ORDER.length : i; };
+  const roleNames = [...new Set(recs.flatMap(r => [str(r.from), str(r.to)]).filter(Boolean))].sort((a, b) => roleIdx(a) - roleIdx(b) || a.localeCompare(b));
+
+  const tPanel = H(rail, 'div', 'panel'); H(tPanel, 'h2', null, 'Threads');
+  const tList = H(tPanel, 'ul', 'threads');
+  const threadBtn = (name, count) => { const li = H(tList, 'li'); const b = H(li, 'button'); b.type = 'button'; b.dataset.thread = name == null ? '' : name;
+    b.append(el('span', null, name == null ? 'All' : name), el('span', 'n', count)); b.addEventListener('click', () => { view.thread = name; render(); }); return b; };
+  threadBtn(null, recs.length); threadNames.forEach(n => threadBtn(n, threadCounts.get(n)));
+
+  const fPanel = H(rail, 'div', 'panel'); H(fPanel, 'h2', null, 'Filter');
+  const chips = H(fPanel, 'div', 'rolechips');
+  roleNames.forEach(r => { const b = badge(chips, r, 'rolechip'); b.setAttribute('role', 'button'); b.tabIndex = 0;
+    const flip = () => { view.roles.has(r) ? view.roles.delete(r) : view.roles.add(r); render(); };
+    b.addEventListener('click', flip); b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } }); });
+  const toggles = H(fPanel, 'div', 'toggles'); toggles.style.marginTop = '12px';
+  const toggle = (label, key) => { const b = H(toggles, 'button', 'toggle', label); b.type = 'button'; b.id = 'toggle-' + key; b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => { view[key] = !view[key]; render(); }); return b; };
+  toggle('newest first', 'newest'); toggle('expand evidence', 'expand');
+
+  // ---- messages ----
+  function card(r, parentVisible) {
+    const subject = str(r.subject), needs = /^NEEDS OWNER:/.test(subject), from = str(r.from);
+    const a = el('article', 'msg' + (needs ? ' needs-owner' : '') + (from === 'owner' ? ' from-owner' : ''));
+    const mh = H(a, 'div', 'mh');
+    badge(mh, from); H(mh, 'span', 'arrow', '\u2192'); badge(mh, str(r.to));
+    H(mh, 'span', 'mid', str(r.id));
+    if (view.thread == null) H(mh, 'span', 're', 're:' + str(r.re || 'RUN'));
+    if (r.reply_to && !parentVisible) H(mh, 'span', 're', 'reply:' + str(r.reply_to));
+    if (needs) H(mh, 'span', 'badge needs', 'needs owner');
+    const t = H(mh, 'time', null, hhmm(r.ts)); t.dateTime = str(r.ts); t.title = str(r.ts);
+    if (subject) H(a, 'div', 'subject', subject);
+    md(H(a, 'div', 'md'), r.body, { expand: view.expand });
+    return a;
+  }
+  function render() {
+    tList.querySelectorAll('button').forEach(b => b.classList.toggle('on', (view.thread == null ? '' : view.thread) === b.dataset.thread));
+    chips.querySelectorAll('.rolechip').forEach(b => b.classList.toggle('off', view.roles.size > 0 && !view.roles.has(b.textContent)));
+    ['newest', 'expand'].forEach(k => { const b = document.getElementById('toggle-' + k); b.classList.toggle('on', view[k]); b.setAttribute('aria-pressed', String(view[k])); });
+    const visible = recs.filter(r => (view.thread == null || str(r.re || 'RUN') === view.thread) && (!view.roles.size || view.roles.has(str(r.from)) || view.roles.has(str(r.to))));
+    const byId = new Map(visible.map(r => [str(r.id), r]));
+    const rootOf = r => { let p = r.reply_to ? byId.get(str(r.reply_to)) : null, guard = 0; while (p && p.reply_to && byId.has(str(p.reply_to)) && guard++ < 64) p = byId.get(str(p.reply_to)); return p && p !== r ? p : null; };
+    const kids = new Map(), top = [];
+    visible.forEach(r => { const p = rootOf(r); if (p) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(r); } else top.push(r); });
+    if (view.newest) top.reverse();
+    msgs.replaceChildren();
+    if (!visible.length) { H(msgs, 'div', 'empty', recs.length ? 'no messages match this view' : 'no messages yet'); return; }
+    top.forEach(r => { const c = card(r, false); const ch = kids.get(r); if (ch && ch.length) { const box = H(c, 'div', 'replies'); ch.forEach(k => box.append(card(k, true))); } msgs.append(c); });
+  }
+  render();
+
+  // ---- pet chip (same sprite as the status page) ----
+  let mood = str(state.mood_override || state.mood);
+  if (!mood || mood === 'auto') mood = 'idle';
+  const LABEL = { idle:'standing by', testing:'testing', 'bug-found':'bug found', fixing:'fixing', 'all-green':'all green' };
+  moodEl.textContent = LABEL[mood] || mood;
+  const g = canvas.getContext('2d');
+  const PAL = { '.':null, k:'#2b2b2b', w:'#ffffff', b:'#5b8def', p:'#f7b6c2', y:'#ffd86b', g:'#6cbf84', r:'#e05a47', s:'#cfd8dc' };
+  const body = c => [
+    '............kk......kk..........','...........k'+c+c+'k....k'+c+c+'k.........','...........k'+c+c+c+'kkkk'+c+c+c+'k.........',
+    '..........k'+c.repeat(12)+'k........','.........k'+c.repeat(14)+'k.......','........k'+c.repeat(16)+'k......',
+    '........k'+c+c+c+'kk'+c.repeat(6)+'kk'+c+c+c+'k......','........k'+c+c+c+'kw'+c.repeat(6)+'kw'+c+c+c+'k......',
+    '.......k'+c.repeat(18)+'k.....','.......k'+c.repeat(9)+'rr'+c.repeat(7)+'k.....','.......k'+c.repeat(8)+'rrrr'+c.repeat(6)+'k.....',
+    '.......k'+c.repeat(18)+'k.....','.......k'+c.repeat(18)+'k.....','........k'+c.repeat(16)+'k......',
+    '........kk'+c.repeat(14)+'kk......','.......k'+c+c+'k'+c.repeat(12)+'k'+c+c+'k.....','.......k'+c+c+c+'k'+c.repeat(10)+'k'+c+c+c+'k.....',
+    '........kkkkkkkkkkkkkkkkkk......','.........k'+c+c+'k........k'+c+c+'k.......','.........kkkk........kkkk.......',
+    ...Array(12).fill('.'.repeat(32)),
+  ];
+  const COLOR = { idle:'s', testing:'b', 'bug-found':'r', fixing:'y', 'all-green':'g' };
+  const rowsPx = body(COLOR[mood] || 's');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let frame = 0;
+  function draw() {
+    g.clearRect(0, 0, 32, 32);
+    const bob = (!reduce && frame % 2 === 1 && mood !== 'idle') ? 1 : 0;
+    rowsPx.forEach((row, y) => { for (let x = 0; x < 32; x++) { const col = PAL[row[x]]; if (!col) continue;
+      const ch = (!reduce && frame % 6 === 5 && row[x] === 'w') ? 'k' : row[x];
+      g.fillStyle = PAL[ch] || col; g.fillRect(x, y + bob, 1, 1); } });
+    if (mood === 'bug-found') { g.fillStyle = '#e05a47'; g.fillRect(26, 2, 4, 4); }
+    if (mood === 'testing' && frame % 2) { g.fillStyle = '#ffd86b'; g.fillRect(2, 2, 2, 2); g.fillRect(28, 6, 2, 2); }
+    if (mood === 'all-green' && frame % 2) { g.fillStyle = '#ffd86b'; g.fillRect(3, 3, 2, 2); g.fillRect(27, 3, 2, 2); }
+    frame++;
+  }
+  draw(); if (!reduce) setInterval(draw, 500);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "boss",
+  "description": "Run a piece of work as a team of separately opened Claude Code sessions: a boss that plans and briefs, a dev that fixes, a tester that runs and gathers evidence, and a status session that publishes a live status page and a threaded conversation page.",
+  "version": "0.1.0",
+  "author": { "name": "Luke Venediger" },
+  "repository": "https://github.com/lukevenediger/boss-skill",
+  "license": "MIT",
+  "keywords": ["orchestration", "multi-session", "testing", "status-page"]
+}
