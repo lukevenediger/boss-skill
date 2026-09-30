@@ -27,3 +27,5 @@ never assume a symlink layout or the executable bit. State lives under `~/.boss/
 | `boss-render` | `bash "$tools_dir/boss-render" [--run <id>]` — writes `pages/status.html` and `pages/conversation.html` from `boss-status/templates/` |
 
 Tests: `bash tests/scripts.test.sh` from the repo root.
+| `bash "$tools_dir/boss-ctx"` | context-window usage per role (register first: `boss-run register <role> --session-id "$CLAUDE_SESSION_ID"`) |
+| `bash …/boss-statusline <your status line command…>` | optional status-line wrapper that records exact usage for boss-ctx (settings.json) |

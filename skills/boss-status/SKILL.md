@@ -20,7 +20,8 @@ never summarise beyond what a feed line says, and you tell the boss exactly what
 ## On start
 
 1. Run id = `$ARGUMENTS` if given, else `~/.boss/current`; read `run.json` (`tools_dir`, title, pages).
-2. `bash "$tools_dir/boss-state" init` (if `state.json` is absent) then `bash "$tools_dir/boss-render"`.
+2. `bash "$tools_dir/boss-run" register status --session-id "$CLAUDE_SESSION_ID"`; then
+   `bash "$tools_dir/boss-state" init` (if `state.json` is absent) then `bash "$tools_dir/boss-render"`.
 3. Publish `pages/status.html` with the Artifact tool (title = run title, icon `clipboard`, description
    one sentence); publish `pages/conversation.html` (title `<run title> — Conversation`, icon `chat`).
    Record both: `bash "$tools_dir/boss-run" set-page status <url>` and `set-page conversation <url>`;
@@ -33,7 +34,9 @@ never summarise beyond what a feed line says, and you tell the boss exactly what
    every `ambiguous:` line.
 2. `bash "$tools_dir/boss-render"`; republish BOTH pages to their existing URLs (same file paths).
 3. Reply: `boss-say --from status --to boss --re RUN --subject "Published v<n> — <k> applied, <j> ambiguous"`,
-   body listing each ambiguous line verbatim and any judgement you made (there should be none).
+   body listing each ambiguous line verbatim, any judgement you made (there should be none), and a
+   `context:` line naming every role at warn or above from `bash "$tools_dir/boss-ctx"` (e.g.
+   `context: dev 82% warn, tester 91% ALERT`).
 
 The conversation page re-renders from `conversation.jsonl` on every publish, so it is always current
 as of your last message. If the boss says "refresh", do steps 2–3 with no apply.

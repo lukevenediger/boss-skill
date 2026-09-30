@@ -62,12 +62,12 @@
   .runmeta span b { color:var(--ink); font-weight:600 }
   .runmeta span b code { background:none; padding:0; font-size:inherit }
 
-  .done { background:var(--ok); color:#fff; border:3px solid var(--ok); border-radius:14px; padding:22px 24px; display:grid; gap:6px }
-  .done h2 { color:#fff; margin:0; font:800 26px/1.15 var(--font-body); letter-spacing:-.01em; text-transform:none; display:flex; align-items:center; gap:12px }
-  .done h2::before { content:"\2713"; font-size:22px; width:36px; height:36px; border-radius:50%; background:#fff; color:var(--ok); display:grid; place-items:center; flex:none }
-  .done .headline { font-size:17px; line-height:1.45; overflow-wrap:anywhere }
-  .done .headline code { background:rgba(255,255,255,.18); color:#fff }
-  .done .at { font:500 11px/1 var(--font-mono); opacity:.85 }
+  .completed { background:var(--ok); color:#fff; border:3px solid var(--ok); border-radius:14px; padding:22px 24px; display:grid; gap:6px }
+  .completed h2 { color:#fff; margin:0; font:800 26px/1.15 var(--font-body); letter-spacing:-.01em; text-transform:none; display:flex; align-items:center; gap:12px }
+  .completed h2::before { content:"\2713"; font-size:22px; width:36px; height:36px; border-radius:50%; background:#fff; color:var(--ok); display:grid; place-items:center; flex:none }
+  .completed .headline { font-size:17px; line-height:1.45; overflow-wrap:anywhere }
+  .completed .headline code { background:rgba(255,255,255,.18); color:#fff }
+  .completed .at { font:500 11px/1 var(--font-mono); opacity:.85 }
   .summary { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:18px 26px }
   @media (max-width:720px) { .summary { grid-template-columns:1fr } }
   .summary h3 { font:600 11px/1 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px }
@@ -102,6 +102,17 @@
   .team .row[data-state="needs-owner"] .doing { color:var(--bad) }
   @media (max-width:560px) { .team .row { grid-template-columns:1fr auto } .team .doing { grid-column:1 / -1 } }
 
+  .ctxwarn { background:var(--warn); color:#fff; border:3px solid var(--warn); border-radius:14px; padding:16px 22px; display:grid; gap:8px }
+  .ctxwarn h2 { color:#fff; margin:0; font:800 20px/1.15 var(--font-body); letter-spacing:-.01em; text-transform:none }
+  .ctxwarn ul { list-style:none; margin:0; padding:0; display:grid; gap:6px }
+  .ctxwarn li { font-size:15px; line-height:1.45; color:#fff; background:rgba(0,0,0,.16); border-radius:10px; padding:10px 14px; overflow-wrap:anywhere }
+  .ctxwarn li b { font-family:var(--font-mono); font-size:13px; background:#fff; color:var(--warn); padding:3px 8px; border-radius:6px; margin-right:6px }
+  .ctxwarn li code { background:rgba(255,255,255,.2); color:#fff }
+  .ctx { display:inline-flex; align-items:center; gap:7px; margin-top:6px; font:500 11px/1 var(--font-mono); color:var(--muted) }
+  .ctx .meter { width:72px; height:6px; background:var(--line-soft); border-radius:3px; overflow:hidden }
+  .ctx .meter > i { display:block; height:100%; background:var(--ok) }
+  .ctx.lvl-warn { color:var(--warn) } .ctx.lvl-warn .meter > i { background:var(--warn) }
+  .ctx.lvl-alert { color:var(--bad); font-weight:600 } .ctx.lvl-alert .meter > i { background:var(--bad) }
   .alert { background:var(--bad); color:#fff; border:3px solid var(--bad); border-radius:14px; padding:20px 24px; display:grid; gap:12px; animation:owner-pulse 1.6s ease-in-out infinite }
   .alert h2 { color:#fff; margin:0; font:800 22px/1.15 var(--font-body); letter-spacing:-.01em; text-transform:none; display:flex; align-items:center; gap:12px }
   .alert h2::before { content:""; width:14px; height:14px; border-radius:50%; background:#fff; flex:none; animation:pulse 1s infinite }
@@ -248,10 +259,19 @@
     if (c.since) li.append(el('span', 'since', 'since ' + c.since));
   });
   alert.hidden = calls.length === 0;
+  // 1a. Context banner: sessions whose window is nearly full (data from boss-ctx at render time)
+  const ctx = Array.isArray(state.context) ? state.context : [];
+  const ctxAlerts = ctx.filter(c => c.level === 'alert');
+  if (ctxAlerts.length) {
+    const w = H(app, 'section', 'ctxwarn');
+    H(w, 'h2', null, 'Context nearly full');
+    const ul = H(w, 'ul');
+    ctxAlerts.forEach(c => { const li = H(ul, 'li'); li.append(el('b', null, str(c.session || c.role)), str(c.used_pct) + '% of its context window used — run ', el('code', null, '/compact'), ' in that terminal (the session name survives it).'); });
+  }
   // 1b. Done banner sits above the hero once the run is closed.
   const done = state.done && state.done.headline ? state.done : null;
   if (done) {
-    const d = H(app, 'section', 'done');
+    const d = H(app, 'section', 'completed');
     H(d, 'h2', null, 'Run complete');
     fmt(H(d, 'div', 'headline'), done.headline);
     if (done.at) H(d, 'div', 'at', 'closed ' + done.at);
@@ -323,6 +343,13 @@
     H(who, 'span', 'role', [m.role, m.model].filter(Boolean).map(str).join(' · '));
     const doing = H(row, 'span', 'doing'); fmt(doing, m.activity || '');
     if (m.since) H(doing, 'span', 'since', 'since ' + m.since);
+    const reading = ctx.find(c => str(c.role) === str(m.role));
+    if (reading && reading.used_pct != null) {
+      const cx = H(who, 'span', 'ctx lvl-' + (reading.level || 'ok'));
+      const meter = H(cx, 'span', 'meter'); H(meter, 'i').style.width = Math.max(0, Math.min(100, reading.used_pct)) + '%';
+      cx.append(str(reading.used_pct) + '% ctx');
+      cx.title = (reading.tokens ? reading.tokens.toLocaleString() + ' / ' + (reading.window || '?').toLocaleString() + ' tokens' : '') + (reading.source ? ' via ' + reading.source : '');
+    }
     H(row, 'span', 'state ' + st, st.replace('-', ' '));
   });
 

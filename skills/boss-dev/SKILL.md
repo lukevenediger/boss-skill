@@ -19,23 +19,26 @@ superpowers:systematic-debugging (find the cause before touching code) and
 superpowers:test-driven-development (the failing test comes first, and you watch it fail).
 
 On start: run id = `$ARGUMENTS` if given, else `~/.boss/current`; → `run.json` for `tools_dir`,
-repo and branch → `git status` clean and on the branch → reply to boss via `boss-say`:
+repo and branch → `bash "$tools_dir/boss-run" register dev --session-id "$CLAUDE_SESSION_ID"` →
+`git status` clean and on the branch → reply to boss via `boss-say`:
 `[M.. dev→boss re:RUN] dev ready on <branch> @ <sha7>`. Then wait for a brief.
 
 ## The loop
 
-For each `re:D<n>` brief from boss:
+For each brief from boss — a defect (`re:D<n>`) or a work item (`re:W<n>.<m>`):
 
-1. **Reproduce.** Confirm the observed failure yourself (test, script, or the exact command).
-2. **Failing test first.** Write the test the brief names; run it; it must be RED for the defect's
-   reason. A test that passes before the fix, or that greps source text, is not a test.
-3. **Root cause, then fix.** The smallest change that turns the test green. If the cause differs from
-   the boss's hypothesis, say so in the reply.
+1. **Reproduce / read.** Defect: confirm the observed failure yourself. Work item: read the spec section
+   the brief names (path + heading) and restate the acceptance in one line in your own words.
+2. **Failing test first.** Write the test the brief names; run it; it must be RED — for the defect's
+   reason, or because the feature does not exist yet. A test that passes before the change, or that
+   greps source text, is not a test.
+3. **Root cause, then fix** (defect) or **the smallest change that meets the acceptance** (work item).
+   If the cause or the spec differs from the boss's reading, say so in the reply.
 4. **Gate.** The repo's full gate (lint, typecheck, unit). Integration or compose suites only if the
    brief says so and names the database to use — never the shared stack's.
 5. **Commit and push** to the run branch (normal push).
 6. **Reply** with the subject that matches what actually happened:
-   - pushed: `--subject "Fix pushed for D<n>: <sha7>, test <file>"`
+   - pushed: `--subject "Fix pushed for D<n>: <sha7>, test <file>"` or `"Done W<n>.<m>: <sha7>, test <file>"`
    - committed but the push failed: `--subject "Fix committed, push blocked for D<n>: <sha7> — <error>"`
    - not fixed: `--subject "D<n> not fixed: <reason>"`
    Body: root cause (one paragraph), what the test asserts, gate summary line, anything the tester

@@ -22,7 +22,8 @@ do nothing but announce yourself.
 1. Role name = `$0`, run id = `$1` from `$ARGUMENTS` (`/boss-role reviewer w1`); if missing, ask the owner for both.
 2. Read `run.json` for `tools_dir`; confirm your role is listed (if not, tell the owner — the boss
    must add it with `boss-run` before you can send).
-3. `boss-say --from <role> --to boss --re RUN --subject "<role> ready, awaiting charter"`.
+3. `bash "$tools_dir/boss-run" register <role> --session-id "$CLAUDE_SESSION_ID"`, then
+   `boss-say --from <role> --to boss --re RUN --subject "<role> ready, awaiting charter"`.
 4. Wait. The charter is a `re:RUN` message with sections Role / Owns / Never / Works with /
    Reports as / Evidence rules / Escalation. Read it fully; it is your contract for the run.
 

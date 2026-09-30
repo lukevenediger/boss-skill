@@ -116,10 +116,16 @@
   .alert li { font-size:16px; line-height:1.45; color:#fff; overflow-wrap:anywhere; background:rgba(0,0,0,.18); border-radius:10px; padding:10px 14px }
   .alert li b { font-family:var(--font-mono); font-size:13px; background:#fff; color:var(--bad); padding:3px 8px; border-radius:6px; margin-right:6px }
   .alert li code { background:rgba(255,255,255,.18); color:#fff }
-  .done { background:var(--ok); color:#fff; border:3px solid var(--ok); border-radius:14px; padding:16px 22px; display:grid; gap:4px }
-  .done h2 { color:#fff; margin:0; font:800 20px/1.15 var(--font-body); letter-spacing:-.01em; display:flex; align-items:center; gap:10px }
-  .done h2::before { content:"\2713"; font-size:16px; width:28px; height:28px; border-radius:50%; background:#fff; color:var(--ok); display:grid; place-items:center; flex:none }
-  .done .headline { font-size:15px; line-height:1.45; overflow-wrap:anywhere }
+  .ctxwarn { background:var(--warn); color:#fff; border:3px solid var(--warn); border-radius:14px; padding:14px 20px; display:grid; gap:6px }
+  .ctxwarn h2 { color:#fff; margin:0; font:800 18px/1.15 var(--font-body); letter-spacing:-.01em }
+  .ctxwarn ul { list-style:none; margin:0; padding:0; display:grid; gap:6px }
+  .ctxwarn li { font-size:14px; line-height:1.45; color:#fff; background:rgba(0,0,0,.16); border-radius:10px; padding:8px 12px; overflow-wrap:anywhere }
+  .ctxwarn li b { font-family:var(--font-mono); font-size:12px; background:#fff; color:var(--warn); padding:3px 8px; border-radius:6px; margin-right:6px }
+  .ctxwarn li code { background:rgba(255,255,255,.2); color:#fff }
+  .completed { background:var(--ok); color:#fff; border:3px solid var(--ok); border-radius:14px; padding:16px 22px; display:grid; gap:4px }
+  .completed h2 { color:#fff; margin:0; font:800 20px/1.15 var(--font-body); letter-spacing:-.01em; display:flex; align-items:center; gap:10px }
+  .completed h2::before { content:"\2713"; font-size:16px; width:28px; height:28px; border-radius:50%; background:#fff; color:var(--ok); display:grid; place-items:center; flex:none }
+  .completed .headline { font-size:15px; line-height:1.45; overflow-wrap:anywhere }
   @keyframes owner-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(185,64,47,.55) } 50% { box-shadow:0 0 0 12px rgba(185,64,47,0) } }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   @media (prefers-reduced-motion: reduce) { .alert, .alert h2::before { animation:none } }
@@ -129,7 +135,8 @@
 <body>
 <div class="wrap">
   <section class="alert" id="ownercall" hidden></section>
-  <section class="done" id="donebanner" hidden></section>
+  <section class="completed" id="donebanner" hidden></section>
+  <section class="ctxwarn" id="ctxbanner" hidden></section>
   <header class="panel head" id="head"></header>
   <div class="cols">
     <aside class="rail" id="rail"></aside>
@@ -233,6 +240,9 @@
     alertEl.hidden = false;
   }
 
+  const ctxAlerts = (Array.isArray(state.context) ? state.context : []).filter(c => c.level === 'alert');
+  if (ctxAlerts.length) { const w = document.getElementById('ctxbanner'); H(w, 'h2', null, 'Context nearly full'); const ul = H(w, 'ul');
+    ctxAlerts.forEach(c => { const li = H(ul, 'li'); li.append(el('b', null, str(c.session || c.role)), str(c.used_pct) + '% used — run ', el('code', null, '/compact'), ' in that terminal.'); }); w.hidden = false; }
   const doneEl = document.getElementById('donebanner');
   if (state.done && state.done.headline) { H(doneEl, 'h2', null, 'Run complete'); H(doneEl, 'div', 'headline', str(state.done.headline)); doneEl.hidden = false; }
 

@@ -102,6 +102,16 @@ def main(argv) -> int:
         sys.stderr.write("warning: no state.json yet (run boss-state init); rendering an empty state\n")
         state = {}
     conversation = read_conversation(os.path.join(rdir, "conversation.jsonl"))
+    try:
+        boss_ctx = __import__("importlib").import_module("boss-ctx")
+    except ImportError:
+        boss_ctx = None
+    if boss_ctx is not None:
+        try:
+            state = dict(state)
+            state["context"] = boss_ctx.collect(run)
+        except Exception as e:  # noqa: BLE001 — a context read must never block a publish
+            sys.stderr.write(f"warning: context readings unavailable: {e}\n")
 
     scripts_dir = os.path.dirname(os.path.realpath(__file__))
     tdir = os.path.realpath(os.path.join(scripts_dir, "..", "..", "boss-status", "templates"))

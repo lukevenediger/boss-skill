@@ -87,6 +87,23 @@ def cmd_set_page(a) -> int:
     return 0
 
 
+def cmd_register(a) -> int:
+    rdir, run = _boss.load_run(a.run)
+    roles = run.setdefault("roles", [])
+    row = next((r for r in roles if r.get("role") == a.role), None)
+    if row is None:
+        row = {"role": a.role, "session": f"{run['id']}-{a.role}", "model": None}
+        roles.append(row)
+    row["session_id"] = a.session_id
+    if a.transcript:
+        row["transcript"] = a.transcript
+    if a.window:
+        row["window"] = a.window
+    _boss.write_json(os.path.join(rdir, "run.json"), run)
+    print(f"registered {a.role} -> session {a.session_id}")
+    return 0
+
+
 def main(argv) -> int:
     p = argparse.ArgumentParser(prog="boss-run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -109,6 +126,14 @@ def main(argv) -> int:
     s.add_argument("id", nargs="?")
     s.add_argument("--compact", action="store_true")
     s.set_defaults(fn=cmd_show)
+
+    s = sub.add_parser("register", help="record a role's Claude Code session id so boss-ctx can read its context usage")
+    s.add_argument("role")
+    s.add_argument("--session-id", required=True)
+    s.add_argument("--transcript")
+    s.add_argument("--window", type=int)
+    s.add_argument("--run")
+    s.set_defaults(fn=cmd_register)
 
     s = sub.add_parser("set-page")
     s.add_argument("page", choices=["status", "conversation"])

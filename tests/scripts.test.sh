@@ -27,6 +27,7 @@ init_run() {
   bash "$SCRIPTS/boss-run" init w1 --title "W1 ingest" --repo /tmp/repo --branch feat/w1 --tz Africa/Johannesburg >/dev/null
 }
 
+run() { bash "$SCRIPTS/boss-run" "$@"; }
 say() { bash "$SCRIPTS/boss-say" "$@"; }
 state() { bash "$SCRIPTS/boss-state" "$@"; }
 apply_lines() { printf '%s\n' "$@" | state apply; }
@@ -301,6 +302,37 @@ case_apply_done_and_summary() {
   assert_eq "$out" $'applied: 0\nambiguous: SUMMARY bogus text' "unknown summary kind is ambiguous"
 }
 
+case_ctx_register_statusline_and_fallback() {
+  fresh_home; init_run
+  # register a session id per role
+  run register dev --session-id sid-dev >/dev/null
+  run register tester --session-id sid-tester >/dev/null
+  assert_eq "$(jq -r '.roles[]|select(.role=="dev")|.session_id' "$BOSS_HOME/runs/w1/run.json")" "sid-dev" "register stores session id"
+  # statusline wrapper writes the ctx file and passes stdin through to the chained command
+  local payload='{"session_id":"sid-dev","session_name":"w1-dev","model":{"id":"claude-opus-5","display_name":"Opus"},"context_window":{"used_percentage":82,"context_window_size":200000,"total_input_tokens":164000},"transcript_path":"/nowhere.jsonl"}'
+  out="$(printf '%s' "$payload" | bash "$SCRIPTS/boss-statusline" cat)"
+  assert_eq "$out" "$payload" "statusline passes stdin through to the chained command"
+  assert_eq "$(jq -r .used_pct "$BOSS_HOME/ctx/sid-dev.json")" "82" "statusline wrote the ctx file"
+  # transcript fallback: a fake transcript with two assistant usage records; the LAST one counts
+  mkdir -p "$BOSS_HOME/fake-projects/p"
+  printf '%s\n' '{"type":"assistant","message":{"model":"claude-sonnet-5","usage":{"input_tokens":10,"cache_read_input_tokens":50000,"cache_creation_input_tokens":0}}}' '{"type":"user","message":{"content":"x"}}' '{"type":"assistant","message":{"model":"claude-sonnet-5","usage":{"input_tokens":20,"cache_read_input_tokens":149980,"cache_creation_input_tokens":0}}}' > "$BOSS_HOME/fake-projects/p/sid-tester.jsonl"
+  out="$(BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-ctx" --json)"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="dev")|[.used_pct,.source]|@csv')" '82,"statusline"' "dev from statusline file"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="tester")|[.used_pct,.source,.window]|@csv')" '75,"transcript",200000' "tester from transcript fallback (150000/200000)"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="boss")|.used_pct')" "null" "unregistered role has no reading"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="dev")|.level')" "warn" "82% is warn at default thresholds (75/90)"
+  # render injects state.context
+  state init >/dev/null
+  BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-render" >/dev/null 2>&1
+  assert_eq "$(python3 - "$BOSS_HOME/runs/w1/pages/status.html" <<'PY'
+import re, json, sys
+h = open(sys.argv[1]).read()
+m = re.search(r'<script id="boss-state"[^>]*>(.*?)</script>', h, re.S)
+print(len(json.loads(m.group(1).replace('<\\/', '</'))["context"]))
+PY
+)" "4" "render injects a context entry per role"
+}
+
 case_state_show() {
   fresh_home; init_run; state init >/dev/null
   state plan-import "$GOLDEN/plan.md" >/dev/null
@@ -381,6 +413,7 @@ cases=(
   case_apply_unplanned_and_unknown_tests
   case_apply_header_and_log_and_remaining
   case_apply_done_and_summary
+  case_ctx_register_statusline_and_fallback
   case_state_show
   case_render_fallback
   case_render_uses_template_dir

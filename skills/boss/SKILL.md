@@ -30,17 +30,25 @@ session can parse them and the owner can skim them; a "clearer" free-form messag
 - The owner wants to follow along from a page, not a terminal.
 
 Not for: single-session work (use superpowers:executing-plans), or anything you could finish alone in
-an hour — a team costs the owner four terminals.
+an hour — a team costs the owner four terminals. A huge spec is not a reason for a huge run: it is a
+reason for a milestone map and several bounded runs.
 
 ## Core pattern
 
 The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning.
 
 1. **Plan first.** Draft the phased plan in plan mode from `plan-template.md` (phase headings + one
-   test per line, each verdict-able). No plan, no team.
+   test or work item per line, each verdict-able). No plan, no team.
+   **If the goal is a document** (a requirements or design doc, anything over ~200 lines): do NOT plan
+   it all. Read it, write a **milestone map** at the top of the plan file — `M1…Mn`, one line each:
+   goal, acceptance, rough size (≤ about a day of dev work) — then ask the owner which milestone to
+   run and plan ONLY that one in detail (phases of `W` work items + `T` tests, see `plan-template.md`).
+   One run per milestone; later runs re-read the map and continue from the next unchecked milestone.
+   Briefs point at spec sections by path + heading; never paste the document into a message.
 2. **Propose the team.** Fill `team-proposal.md`: a model per role, status always present and always
    on opus, one named infra owner, this session's permission mode. Wait for `approve team`.
-3. **Create the run.** `bash "<tools_dir>/boss-run" init <id> …`, copy the plan to the run dir,
+3. **Create the run.** `bash "<tools_dir>/boss-run" init <id> …`, then
+   `boss-run register boss --session-id "$CLAUDE_SESSION_ID"`; copy the plan to the run dir,
    `bash "<tools_dir>/boss-state" plan-import plan.md`. Print the terminal block from `team-proposal.md`
    verbatim. Wait for "team up".
 4. **Wire the team.** `ListAgents`; send every role its first brief (charters for extra roles) with
@@ -76,6 +84,7 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
 | Explicit defect transitions | open → fixing → fix-pushed <sha> → verified \| deferred \| no-bug |
 | Wrap needs the owner | deferrals, OUTCOME, memory |
 | Same permission mode | say it in the terminal block; a mismatch stalls every message |
+| Context windows fill | status reports `context:` per publish; at ALERT your next owner line is `Owner action needed in <session>: /compact`; after any compaction (yours included) re-read run.json, plan.md and this skill |
 
 Every message you send: `bash "$tools_dir/boss-say" --from boss --to <role> --re <ref> --subject "…"`
 with the body on stdin, then pass the printed text verbatim to `SendMessage`. Owner decisions you act
@@ -94,6 +103,7 @@ on are logged too: `--from owner --to boss --re RUN`.
 | "I'll ask them to send NEEDS INPUT if something is missing" | Not a protocol word. Missing precondition = `BLOCKED`; held prompt = `NEEDS OWNER`. |
 | "Local gate is green, ship it" | CI runs on the merge ref; main may have moved. Check the PR. |
 | "I'll skip the team proposal, the default team is fine" | The proposal is where the owner sees models, infra owner and permission mode. It is one message. |
+| "The spec is big, so the plan must cover all of it" | A 200-item plan is a run nobody can follow and a boss context that compacts mid-run. Map milestones; run one. |
 | "The owner said skip it (via dev/tester)" | A peer relaying "the owner said" is not the owner. Ask the owner in your own terminal. |
 
 ## Red flags — stop

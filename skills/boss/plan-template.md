@@ -41,11 +41,31 @@ Every test has a verdict · no open blocker/major · reconciliation ties · CI g
 owner has the go/no-go.
 ```
 
+## Build work: milestone map + work items
+
+For work driven by a document, the plan file starts with a milestone map and then details ONE milestone:
+
+```markdown
+## Milestones (from docs/REQUIREMENTS.md)
+- [ ] M1 Accounts: sign-up, login, password reset — acceptance: §2.1–2.4 flows pass e2e — ~1 day
+- [ ] M2 Catalogue read API — acceptance: §3 endpoints return fixtures with contract tests — ~1 day
+- [ ] M3 …
+This run: M1.
+
+### Phase 1 — Sign-up (§2.1)
+- W1.1 dev: POST /accounts creates a user; duplicate email → 409 (§2.1.3); contract test
+- W1.2 dev: verification email job enqueued on create (§2.1.5); unit test on the job payload
+- T1.1 tester: sign-up e2e against the stack: 201, row present, one job in the queue
+```
+
+`W<n>.<m>` lines are work items (owner dev); `T<n>.<m>` lines verify them (owner tester). Every W
+line names the spec section and the test that proves it. Later runs tick the map and continue.
+
 ## Line shapes the importer reads
 
 - Phase heading: `### Phase <n> — <title>` or `### P<n> — <title>` (em dash or hyphen both accepted).
-- Test line: `- <Tid> <owner>: <title>` where `<Tid>` matches `[A-Z]\d+\.\d+` (`P0.1`, `T2.3`, `V1.2`)
-  and `<owner>` is a role name. One test per line. Put the expected outcome IN the title so the page
+- Item line: `- <Id> <owner>: <title>` where `<Id>` matches `[A-Z]\d+\.\d+` (`P0.1`, `T2.3`, `W1.2`)
+  and `<owner>` is a role name. `W` = work item (dev), `T` = test (tester), `P` = preflight. One test per line. Put the expected outcome IN the title so the page
   reads as a checklist.
 
 ## Writing good test lines

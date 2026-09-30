@@ -111,7 +111,7 @@ DONE <headline>              run complete: big banner on both pages, mood all-gr
 SUMMARY did|challenge|followup <bullet>   one bullet per line, ≤ 3 per kind (`SUMMARY clear` resets)
 MOOD idle|testing|bug-found|fixing|all-green|auto
 ```
-`<Tid>` matches `[A-Z]\d+\.\d+` (P0.1, T2.3, V1.2 …). The `—` separator may be written `--`. Unknown test
+`<Tid>` matches `[A-Z]\d+\.\d+` (P0.1 preflight, T2.3 test, W1.2 work item …). The `—` separator may be written `--`. Unknown test
 ids are created in an "Unplanned" phase (`PX`) rather than dropped; a DEFECT transition for an unreported id
 creates a placeholder titled `(unreported)`. `HEADER title=…` sets the run title; other keys go to `header`.
 Times default to now in the run's tz; `TEAM … since HH:MM` and `LOG HH:MM` are taken verbatim.
@@ -166,3 +166,17 @@ from those islands; status edits data, never markup. Status publishes `pages/sta
 6. **Defect loop transitions are explicit** and each one reaches the status page.
 7. **Wrap needs the owner:** deferred defects are the owner's call; `OUTCOME` on the page; memory updated.
 8. **Same permission mode everywhere**, or messages stall silently.
+
+## 8. Context windows
+
+A session cannot see how full its own context is, and a session that compacts mid-task loses its
+judgement. So every role registers on start:
+`bash "$tools_dir/boss-run" register <role> --session-id "$CLAUDE_SESSION_ID"`.
+`boss-ctx` then reads each role's usage — from `~/.boss/ctx/<session_id>.json` when the owner has
+wired `boss-statusline` into their status line (accurate), else from the session transcript's last
+usage record (estimate) — and `boss-render` puts it on both pages: a meter per team row, and an amber
+**"Context nearly full"** banner at `alert` (default 90%; `warn` at 75%; `ctx_warn` / `ctx_alert` in
+run.json override). Status's reply to the boss names any role at warn or above (`context: dev 82%`);
+at alert the boss's next line to the owner is `Owner action needed in <session>: /compact`.
+`/compact` keeps the session name, so the team keeps messaging it; after compacting, a role re-reads
+`run.json` and its charter and carries on. The boss itself is a role here too.

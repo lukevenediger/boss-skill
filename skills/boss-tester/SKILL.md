@@ -19,7 +19,7 @@ trust and defect reports the dev can act on.
 §7 rules).
 
 On start: run id = `$ARGUMENTS` if given, else `~/.boss/current`; → `run.json` for `tools_dir` and repo →
-reply via `boss-say`: `[M.. tester→boss re:RUN] tester ready; stack <state>`. Then wait for a brief.
+`bash "$tools_dir/boss-run" register tester --session-id "$CLAUDE_SESSION_ID"` → reply via `boss-say`: `[M.. tester→boss re:RUN] tester ready; stack <state>`. Then wait for a brief.
 
 ## A verdict is: run + evidence + line
 

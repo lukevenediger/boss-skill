@@ -165,5 +165,43 @@
     "did": [],
     "challenges": [],
     "followups": []
-  }
+  },
+  "context": [
+    {
+      "role": "boss",
+      "session": "smoke-boss",
+      "used_pct": 61,
+      "tokens": 122000,
+      "window": 200000,
+      "source": "statusline",
+      "level": "ok"
+    },
+    {
+      "role": "dev",
+      "session": "smoke-dev",
+      "used_pct": 92,
+      "tokens": 184000,
+      "window": 200000,
+      "source": "statusline",
+      "level": "alert"
+    },
+    {
+      "role": "tester",
+      "session": "smoke-tester",
+      "used_pct": 78,
+      "tokens": 156000,
+      "window": 200000,
+      "source": "transcript",
+      "level": "warn"
+    },
+    {
+      "role": "status",
+      "session": "smoke-status",
+      "used_pct": 23,
+      "tokens": 46000,
+      "window": 200000,
+      "source": "statusline",
+      "level": "ok"
+    }
+  ]
 }

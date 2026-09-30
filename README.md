@@ -143,6 +143,12 @@ snapshot: time each step, confirm the app comes up, and list anything that would
 window." Add a `perf` or `dba` role through the proposal; the boss writes it a charter and it reports
 like any other session.
 
+**Building from a large spec.** `/boss plan docs/REQUIREMENTS.md — build this` on a 2000-line
+document does not produce a 2000-line plan. The boss reads the spec, writes a *milestone map* (M1…Mn,
+one line each, about a day of work apiece), asks which milestone to run, and plans only that one as
+work items (`W1.1 dev: …`, citing the spec section) with tests to prove them. One run per milestone;
+the next run picks up from the map.
+
 **Anything where you want a paper trail.** The conversation log is the audit: who ran what, what it
 returned, who decided what, and when.
 
@@ -169,6 +175,20 @@ your session uses.
   design; the page shows a banner each time.
 - **Pages are private artifacts** on claude.ai. Share them from the page's Share menu if colleagues
   should see them.
+
+## Context windows
+
+Each session's context fills up over a long run; when one compacts mid-task it loses its judgement.
+The status page shows a small context meter on every team row and an amber **"Context nearly full"**
+banner (default 90%) telling you which terminal to `/compact` in. The session name survives
+compaction, so the team carries on.
+
+Readings come from the session transcripts by default (an estimate). For exact numbers, wire the
+shipped wrapper into your status line, keeping whatever command you already have after it:
+
+```json
+"statusLine": { "type": "command", "command": "bash ~/boss-skill/skills/boss-protocol/scripts/boss-statusline <your existing command>" }
+```
 
 ## Layout
 

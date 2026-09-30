@@ -47,6 +47,14 @@ lines / codes verbatim) · **Hypothesis** (boss's read of the root cause, marked
 **Required test** (where the failing test goes and what it asserts) · **Constraints** (what not to
 touch; e.g. "do not run the stack-dependent suites") · **Report** (`Fix pushed: <sha7>, test <file>`).
 
+## For build briefs (work items, `re:W<n>.<m>`)
+
+Slots: **Item** (`W<n>.<m>`, one-line title) · **Spec** (path + heading to read, e.g.
+`docs/REQUIREMENTS.md §2.1.3` — never the text itself) · **Acceptance** (observable: request → response,
+row present, job enqueued) · **Test to write first** (file + what it asserts) · **Likely files** ·
+**Constraints** · **Report** (`Done W<n>.<m>: <sha7>, test <file>`). One item per brief; the tester
+gets the matching `T` line separately once the sha is pushed.
+
 ## Common mistakes
 
 - Expected results described as adjectives ("works", "fine") — give the number or the code.
