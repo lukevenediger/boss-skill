@@ -191,7 +191,8 @@ compaction, so the team carries on.
   <img src="docs/images/team-context-meters.jpg" width="820" alt="Team panel: each session row shows its activity, state chip and a context meter; dev is red at 92%, tester amber at 78%">
 </p>
 
-Readings come from the session transcripts by default (an estimate). For exact numbers, wire the
+Readings come from the session transcripts by default. When the model's window size isn't known that
+is an estimate (shown as `≈`, and it never triggers the compact banner). For exact numbers, wire the
 shipped wrapper into your status line, keeping whatever command you already have after it:
 
 ```json

@@ -36,7 +36,7 @@ never summarise beyond what a feed line says, and you tell the boss exactly what
 3. Reply: `boss-say --from status --to boss --re RUN --subject "Published v<n> — <k> applied, <j> ambiguous"`,
    body listing each ambiguous line verbatim, any judgement you made (there should be none), and a
    `context:` line naming every role at warn or above from `bash "$tools_dir/boss-ctx"` (e.g.
-   `context: dev 82% warn, tester 91% ALERT`).
+   `context: dev 82% warn, tester 91% ALERT`; an estimate is written `≈82%` and is never ALERT).
 
 The conversation page re-renders from `conversation.jsonl` on every publish, so it is always current
 as of your last message. If the boss says "refresh", do steps 2–3 with no apply.

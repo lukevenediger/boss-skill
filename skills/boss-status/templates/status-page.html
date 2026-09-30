@@ -347,8 +347,8 @@
     if (reading && reading.used_pct != null) {
       const cx = H(who, 'span', 'ctx lvl-' + (reading.level || 'ok'));
       const meter = H(cx, 'span', 'meter'); H(meter, 'i').style.width = Math.max(0, Math.min(100, reading.used_pct)) + '%';
-      cx.append(str(reading.used_pct) + '% ctx');
-      cx.title = (reading.tokens ? reading.tokens.toLocaleString() + ' / ' + (reading.window || '?').toLocaleString() + ' tokens' : '') + (reading.source ? ' via ' + reading.source : '');
+      cx.append((reading.estimate ? '≈' : '') + str(reading.used_pct) + '% ctx');
+      cx.title = (reading.tokens ? reading.tokens.toLocaleString() + ' / ' + (reading.window || '?').toLocaleString() + ' tokens' : '') + (reading.source ? ' via ' + reading.source : '') + (reading.estimate ? ' — window unknown, 200k assumed' : '');
     }
     H(row, 'span', 'state ' + st, st.replace('-', ' '));
   });

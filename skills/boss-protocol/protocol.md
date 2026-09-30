@@ -174,7 +174,8 @@ judgement. So every role registers on start:
 `bash "$tools_dir/boss-run" register <role> --session-id "$CLAUDE_SESSION_ID"`.
 `boss-ctx` then reads each role's usage — from `~/.boss/ctx/<session_id>.json` when the owner has
 wired `boss-statusline` into their status line (accurate), else from the session transcript's last
-usage record (estimate) — and `boss-render` puts it on both pages: a meter per team row, and an amber
+usage record — an estimate when the model's window is unknown (200k assumed, shown as `≈`, capped at
+warn; a role that knows its window registers it: `boss-run register <role> --session-id … --window 1000000`) — and `boss-render` puts it on both pages: a meter per team row, and an amber
 **"Context nearly full"** banner at `alert` (default 90%; `warn` at 75%; `ctx_warn` / `ctx_alert` in
 run.json override). Status's reply to the boss names any role at warn or above (`context: dev 82%`);
 at alert the boss's next line to the owner is `Owner action needed in <session>: /compact`.

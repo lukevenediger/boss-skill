@@ -321,6 +321,24 @@ case_ctx_register_statusline_and_fallback() {
   assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="tester")|[.used_pct,.source,.window]|@csv')" '75,"transcript",200000' "tester from transcript fallback (150000/200000)"
   assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="boss")|.used_pct')" "null" "unregistered role has no reading"
   assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="dev")|.level')" "warn" "82% is warn at default thresholds (75/90)"
+  # unknown-window model at 196k: the estimate must NOT alert (window may be 1M); it is flagged as an estimate
+  run register boss --session-id sid-boss >/dev/null
+  printf '%s\n' '{"type":"assistant","message":{"model":"claude-opus-5","usage":{"input_tokens":100,"cache_read_input_tokens":195900,"cache_creation_input_tokens":0}}}' > "$BOSS_HOME/fake-projects/p/sid-boss.jsonl"
+  out="$(BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-ctx" --json)"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="boss")|[.used_pct,.level,.estimate,.window]|@csv')" '98,"warn",true,200000' "unknown window: capped at warn, flagged estimate"
+  # more than 200k in context proves a 1M window
+  printf '%s\n' '{"type":"assistant","message":{"model":"claude-opus-5","usage":{"input_tokens":100,"cache_read_input_tokens":249900,"cache_creation_input_tokens":0}}}' > "$BOSS_HOME/fake-projects/p/sid-boss.jsonl"
+  out="$(BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-ctx" --json)"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="boss")|[.used_pct,.level,.window]|@csv')" '25,"ok",1000000' ">200k proves a 1M window"
+  # an explicit --window override wins
+  run register boss --session-id sid-boss --window 1000000 >/dev/null
+  printf '%s\n' '{"type":"assistant","message":{"model":"claude-opus-5","usage":{"input_tokens":100,"cache_read_input_tokens":195900,"cache_creation_input_tokens":0}}}' > "$BOSS_HOME/fake-projects/p/sid-boss.jsonl"
+  out="$(BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-ctx" --json)"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="boss")|[.used_pct,.level,.estimate]|@csv')" '20,"ok",false' "registered --window is authoritative"
+  # a fable model is known to have a 1M window
+  printf '%s\n' '{"type":"assistant","message":{"model":"claude-fable-5-1","usage":{"input_tokens":100,"cache_read_input_tokens":195900,"cache_creation_input_tokens":0}}}' > "$BOSS_HOME/fake-projects/p/sid-tester.jsonl"
+  out="$(BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-ctx" --json)"
+  assert_eq "$(echo "$out" | jq -r '.[]|select(.role=="tester")|[.used_pct,.estimate]|@csv')" '20,false' "known 1M model"
   # render injects state.context
   state init >/dev/null
   BOSS_CLAUDE_PROJECTS="$BOSS_HOME/fake-projects" bash "$SCRIPTS/boss-render" >/dev/null 2>&1
