@@ -54,9 +54,10 @@ Open these terminals, in the same permission mode as this one (<mode>):
 
 Terminal 2 (dev):     cd <repo> && claude --model opus     then  /rename <id>-dev      then  /boss-dev <id>
 Terminal 3 (tester):  cd <repo> && claude --model sonnet   then  /rename <id>-tester   then  /boss-tester <id>
-Terminal 4 (status):  cd ~ && claude --model opus          then  /rename <id>-status   then  /boss-status <id>
+Terminal 4 (status):  cd <repo> && claude --model opus     then  /rename <id>-status   then  /boss-status <id>
 
 Say "team up" here when all three prompts are idle.
 ```
 
-Status runs from `~` on purpose: it never needs the repo. Extra roles get a line each with `/boss-role <role> <id>`.
+Every terminal starts in the repo, status included (same permission scope, same `.claude` settings).
+Extra roles get a line each with `/boss-role <role> <id>`.
