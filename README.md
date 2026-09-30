@@ -11,7 +11,7 @@ You stay the owner. The team stops and asks whenever it needs your decision, and
 so in a banner you cannot miss.
 
 <p align="center">
-  <img src="docs/images/status-waiting-on-you.jpg" width="820" alt="Status page mid-run: a red 'Waiting on you' banner, the pet in bug-found mood, progress bar, team activity">
+  <img src="docs/images/status-waiting-on-you.jpg" width="820" alt="Status page mid-run: a red 'Waiting on you' banner, an amber 'Context nearly full' banner, the pet in bug-found mood, progress bar">
 </p>
 
 ## Why
@@ -27,6 +27,8 @@ strict roles gives you:
   page with threads per test and per defect.
 - **No silent stalls.** A session held on a permission prompt tells the boss immediately, and the
   boss puts it on the first line to you. The page shows a banner until you act.
+- **No silent forgetting.** Each session's context usage is on the page; when one is nearly full the
+  page tells you which terminal to `/compact` in before it loses the plot.
 
 ## Install
 
@@ -173,6 +175,8 @@ your session uses.
 - **Runtime lives in `~/.boss/`**, never in your repo. Delete a run directory when you're done with it.
 - **The boss will ask.** It stops for `approve team`, `team up`, deferrals, and GO / NO-GO. That's by
   design; the page shows a banner each time.
+- **Compact when told.** When the page says a session's context is nearly full, run `/compact` in
+  that terminal. The session keeps its name and picks up from the run directory.
 - **Pages are private artifacts** on claude.ai. Share them from the page's Share menu if colleagues
   should see them.
 
@@ -182,6 +186,10 @@ Each session's context fills up over a long run; when one compacts mid-task it l
 The status page shows a small context meter on every team row and an amber **"Context nearly full"**
 banner (default 90%) telling you which terminal to `/compact` in. The session name survives
 compaction, so the team carries on.
+
+<p align="center">
+  <img src="docs/images/team-context-meters.jpg" width="820" alt="Team panel: each session row shows its activity, state chip and a context meter; dev is red at 92%, tester amber at 78%">
+</p>
 
 Readings come from the session transcripts by default (an estimate). For exact numbers, wire the
 shipped wrapper into your status line, keeping whatever command you already have after it:
