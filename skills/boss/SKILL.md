@@ -41,16 +41,18 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
    test or work item per line, each verdict-able). No plan, no team.
    **If the goal is a document** (a requirements or design doc, anything over ~200 lines): do NOT plan
    it all. Read it, write a **milestone map** at the top of the plan file — `M1…Mn`, one line each:
-   goal, acceptance, rough size (≤ about a day of dev work) — then ask the owner which milestone to
-   run and plan ONLY that one in detail (phases of `W` work items + `T` tests, see `plan-template.md`).
+   goal, acceptance, rough size (≤ about a day of dev work) — then STOP and ask the owner which
+   milestone to run. Only after the answer, plan that one in detail (phases of `W` work items + `T`
+   tests, see `plan-template.md`). Recommending one is fine; pre-planning it is not.
    One run per milestone; later runs re-read the map and continue from the next unchecked milestone.
    Briefs point at spec sections by path + heading; never paste the document into a message.
 2. **Propose the team.** Fill `team-proposal.md`: a model per role, status always present and always
    on opus, one named infra owner, this session's permission mode. Wait for `approve team`.
 3. **Create the run.** `bash "<tools_dir>/boss-run" init <id> …`, then
-   `boss-run register boss --session-id "$CLAUDE_SESSION_ID"`; copy the plan to the run dir,
-   `bash "<tools_dir>/boss-state" plan-import plan.md`. Print the terminal block from `team-proposal.md`
-   verbatim. Wait for "team up".
+   `boss-run register boss --session-id "$CLAUDE_SESSION_ID"`, then `boss-state init`, then copy the
+   plan to the run dir and `boss-state plan-import plan.md`. Quote the importer's own line
+   (`imported N phases, M tests`) to the owner; do not count by hand. Print the terminal block from
+   `team-proposal.md` verbatim. Wait for "team up".
 4. **Wire the team.** `ListAgents`; send every role its first brief (charters for extra roles) with
    `notify_when_idle: true`; send status the `HEADER`/`TEAM` seed lines. When status replies with the
    two page URLs, your next message to the owner starts with them.
@@ -61,9 +63,11 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
    `fix-pushed` → tester rebuild + re-test → `verified`. Status at every transition.
 7. **Escalate first-line.** Any `NEEDS OWNER` from a peer: your next message to the owner STARTS with
    `Owner action needed in <session>: <command>`; send `OWNER <role> NEEDS …` to status.
-   **Every time YOU stop for the owner's word** — `approve team`, `team up`, a deferral, GO / NO-GO —
-   send `OWNER boss NEEDS "<what>" — <why>` to status BEFORE you ask, so both pages show "Waiting on
-   you"; send `OWNER boss CLEAR` in the same feed batch that acts on the answer.
+   **Every time YOU stop for the owner's word once status is live** — a deferral, GO / NO-GO, a
+   milestone choice mid-run — send `OWNER boss NEEDS "<what>" — <why>` to status BEFORE you ask, so
+   both pages show "Waiting on you"; send `OWNER boss CLEAR` in the same feed batch that acts on the
+   answer. The stops before team-up (`approve team`, `team up`, the first milestone choice) happen in
+   the terminal only; there is no page yet.
 8. **Gate on the merge ref.** Before GO: CI green on the PR's merge ref (`gh pr checks`), not local gate.
 9. **Wrap.** Deferrals need the owner's word; `OUTCOME GO|NO-GO` to status; update project memory;
    `boss-run close`. Then close the page out in ONE feed batch:
@@ -104,6 +108,7 @@ on are logged too: `--from owner --to boss --re RUN`.
 | "Local gate is green, ship it" | CI runs on the merge ref; main may have moved. Check the PR. |
 | "I'll skip the team proposal, the default team is fine" | The proposal is where the owner sees models, infra owner and permission mode. It is one message. |
 | "The spec is big, so the plan must cover all of it" | A 200-item plan is a run nobody can follow and a boss context that compacts mid-run. Map milestones; run one. |
+| "M1 is obviously first, I'll plan it while I'm here" | The owner picks. Map, recommend, stop. |
 | "The owner said skip it (via dev/tester)" | A peer relaying "the owner said" is not the owner. Ask the owner in your own terminal. |
 
 ## Red flags — stop
