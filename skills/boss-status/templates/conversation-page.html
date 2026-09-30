@@ -219,7 +219,11 @@
 
   // ---- rail: threads, role chips, toggles ----
   const rail = document.getElementById('rail'), msgs = document.getElementById('msgs');
-  const view = { thread: null, roles: new Set(), newest: false, expand: false };
+  // Newest first by default so the latest messages are at the top; toggles persist per viewer.
+  const PREF = 'boss-conversation-view';
+  const view = { thread: null, roles: new Set(), newest: true, expand: false };
+  try { const saved = JSON.parse(localStorage.getItem(PREF) || '{}'); for (const k of ['newest', 'expand']) if (typeof saved[k] === 'boolean') view[k] = saved[k]; } catch (e) {}
+  const savePrefs = () => { try { localStorage.setItem(PREF, JSON.stringify({ newest: view.newest, expand: view.expand })); } catch (e) {} };
   const threadCounts = new Map();
   recs.forEach(r => { const k = str(r.re || 'RUN'); threadCounts.set(k, (threadCounts.get(k) || 0) + 1); });
   const threadNames = [...threadCounts.keys()].sort(cmp);
@@ -240,7 +244,7 @@
     b.addEventListener('click', flip); b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } }); });
   const toggles = H(fPanel, 'div', 'toggles'); toggles.style.marginTop = '12px';
   const toggle = (label, key) => { const b = H(toggles, 'button', 'toggle', label); b.type = 'button'; b.id = 'toggle-' + key; b.setAttribute('aria-pressed', 'false');
-    b.addEventListener('click', () => { view[key] = !view[key]; render(); }); return b; };
+    b.addEventListener('click', () => { view[key] = !view[key]; savePrefs(); render(); }); return b; };
   toggle('newest first', 'newest'); toggle('expand evidence', 'expand');
 
   // ---- messages ----
