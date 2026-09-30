@@ -53,6 +53,9 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
    `fix-pushed` → tester rebuild + re-test → `verified`. Status at every transition.
 7. **Escalate first-line.** Any `NEEDS OWNER` from a peer: your next message to the owner STARTS with
    `Owner action needed in <session>: <command>`; send `OWNER <role> NEEDS …` to status.
+   **Every time YOU stop for the owner's word** — `approve team`, `team up`, a deferral, GO / NO-GO —
+   send `OWNER boss NEEDS "<what>" — <why>` to status BEFORE you ask, so both pages show "Waiting on
+   you"; send `OWNER boss CLEAR` in the same feed batch that acts on the answer.
 8. **Gate on the merge ref.** Before GO: CI green on the PR's merge ref (`gh pr checks`), not local gate.
 9. **Wrap.** Deferrals need the owner's word; `OUTCOME GO|NO-GO` to status; update project memory;
    `boss-run close`.
@@ -93,4 +96,5 @@ on are logged too: `--from owner --to boss --re RUN`.
 
 Editing a file · running `git commit`/`push`/`merge` · starting or stopping a stack · a message not
 produced by `boss-say` · a verdict line to status you have not seen evidence for · an owner-facing
-message that mentions a held prompt below the first line.
+message that mentions a held prompt below the first line · asking the owner anything without an
+`OWNER boss NEEDS` line already on the page.

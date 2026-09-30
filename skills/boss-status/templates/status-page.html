@@ -88,12 +88,17 @@
   .team .row[data-state="needs-owner"] .doing { color:var(--bad) }
   @media (max-width:560px) { .team .row { grid-template-columns:1fr auto } .team .doing { grid-column:1 / -1 } }
 
-  .alert { background:var(--bad-soft); border:1px solid var(--bad); border-radius:14px; padding:16px 20px; display:grid; gap:8px }
-  .alert h2 { color:var(--bad); margin:0 }
-  .alert ul { list-style:none; margin:0; padding:0; display:grid; gap:7px }
-  .alert li { font-size:14px; line-height:1.5; color:var(--ink); overflow-wrap:anywhere }
-  .alert li b { font-family:var(--font-mono); font-size:13px }
-  .alert li .since { color:var(--muted); font:500 11px/1 var(--font-mono); margin-left:8px }
+  .alert { background:var(--bad); color:#fff; border:3px solid var(--bad); border-radius:14px; padding:20px 24px; display:grid; gap:12px; animation:owner-pulse 1.6s ease-in-out infinite }
+  .alert h2 { color:#fff; margin:0; font:800 22px/1.15 var(--font-body); letter-spacing:-.01em; text-transform:none; display:flex; align-items:center; gap:12px }
+  .alert h2::before { content:""; width:14px; height:14px; border-radius:50%; background:#fff; flex:none; animation:pulse 1s infinite }
+  .alert .sub { font:500 13px/1.4 var(--font-mono); opacity:.9 }
+  .alert ul { list-style:none; margin:0; padding:0; display:grid; gap:10px }
+  .alert li { font-size:17px; line-height:1.45; color:#fff; overflow-wrap:anywhere; background:rgba(0,0,0,.18); border-radius:10px; padding:12px 14px }
+  .alert li b { font-family:var(--font-mono); font-size:14px; background:#fff; color:var(--bad); padding:3px 8px; border-radius:6px; margin-right:6px }
+  .alert li code { background:rgba(255,255,255,.18); color:#fff }
+  .alert li .since { color:#fff; opacity:.8; font:500 11px/1 var(--font-mono); margin-left:8px }
+  @keyframes owner-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(185,64,47,.55) } 50% { box-shadow:0 0 0 12px rgba(185,64,47,0) } }
+  @media (prefers-reduced-motion: reduce) { .alert, .alert h2::before { animation:none } }
 
   .milestones { display:grid; grid-template-columns:repeat(var(--n,8), minmax(0,1fr)); gap:0 }
   @media (max-width:760px) { .milestones { grid-template-columns:repeat(4, minmax(0,1fr)); row-gap:18px } }
@@ -219,7 +224,8 @@
 
   // 1. NEEDS-OWNER banner
   const alert = H(app, 'section', 'alert'); alert.id = 'ownercall';
-  H(alert, 'h2', null, 'Owner action needed');
+  H(alert, 'h2', null, 'Waiting on you');
+  H(alert, 'div', 'sub', 'The run is blocked until you act. Reply in the named session.');
   const ul = H(alert, 'ul');
   calls.forEach(c => {
     const li = H(ul, 'li');

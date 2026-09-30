@@ -109,11 +109,22 @@
   .md details.evidence summary::before { content:""; width:7px; height:7px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg); transition:transform .15s }
   .md details.evidence[open] summary::before { transform:rotate(45deg) }
   .md details.evidence pre { margin:0; border-radius:0 0 8px 8px }
+  .alert { background:var(--bad); color:#fff; border:3px solid var(--bad); border-radius:14px; padding:18px 22px; display:grid; gap:10px; animation:owner-pulse 1.6s ease-in-out infinite }
+  .alert h2 { color:#fff; margin:0; font:800 20px/1.15 var(--font-body); letter-spacing:-.01em; display:flex; align-items:center; gap:12px }
+  .alert h2::before { content:""; width:12px; height:12px; border-radius:50%; background:#fff; flex:none; animation:pulse 1s infinite }
+  .alert ul { list-style:none; margin:0; padding:0; display:grid; gap:8px }
+  .alert li { font-size:16px; line-height:1.45; color:#fff; overflow-wrap:anywhere; background:rgba(0,0,0,.18); border-radius:10px; padding:10px 14px }
+  .alert li b { font-family:var(--font-mono); font-size:13px; background:#fff; color:var(--bad); padding:3px 8px; border-radius:6px; margin-right:6px }
+  .alert li code { background:rgba(255,255,255,.18); color:#fff }
+  @keyframes owner-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(185,64,47,.55) } 50% { box-shadow:0 0 0 12px rgba(185,64,47,0) } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @media (prefers-reduced-motion: reduce) { .alert, .alert h2::before { animation:none } }
   @media (prefers-reduced-motion: reduce) { .md details.evidence summary::before { transition:none } }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <section class="alert" id="ownercall" hidden></section>
   <header class="panel head" id="head"></header>
   <div class="cols">
     <aside class="rail" id="rail"></aside>
@@ -207,6 +218,15 @@
   const rank = re => { const m = re.match(/^([A-Z]+)(\d+)?(?:\.(\d+))?/); const order = { RUN:0, OWNER:1, P:2, T:3, D:4, M:5 };
     return [m && order[m[1]] != null ? order[m[1]] : 6, m && m[2] ? +m[2] : 0, m && m[3] ? +m[3] : 0, re]; };
   const cmp = (a, b) => { const x = rank(a), y = rank(b); for (let i = 0; i < 4; i++) { if (x[i] < y[i]) return -1; if (x[i] > y[i]) return 1; } return 0; };
+
+  // ---- owner banner (same source as the status page: state.owner_calls) ----
+  const calls = Array.isArray(state.owner_calls) ? state.owner_calls : [], alertEl = document.getElementById('ownercall');
+  if (calls.length) {
+    H(alertEl, 'h2', null, 'Waiting on you');
+    const ul = H(alertEl, 'ul');
+    calls.forEach(c => { const li = H(ul, 'li'); li.append(el('b', null, str(c.session || c.role)), ' ', el('code', null, str(c.command)), ' — ' + str(c.why)); });
+    alertEl.hidden = false;
+  }
 
   // ---- header ----
   const head = document.getElementById('head');

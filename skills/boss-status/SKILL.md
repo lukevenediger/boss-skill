@@ -47,6 +47,8 @@ as of your last message. If the boss says "refresh", do steps 2–3 with no appl
 - **Same URLs.** A new URL loses the owner. Republish to `run.json.pages`.
 - **Clock.** Times render in the run tz; you never convert or "correct" a time the boss sent.
 - **Mood.** Auto-derived; `MOOD <x>` overrides until `MOOD auto`.
+- **Owner banner.** `OWNER <role> NEEDS …` shows "Waiting on you" on BOTH pages until `OWNER <role> CLEAR`.
+  You never clear it on your own judgement.
 
 ## Common mistakes
 

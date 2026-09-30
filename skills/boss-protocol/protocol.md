@@ -57,14 +57,18 @@ CLI: `bash "$tools_dir/boss-say" --from <role> --to <role> --re <ref> [--reply M
 missing run. `BOSS_HOME` overrides `~/.boss`; `BOSS_NOW=<ISO local>` pins "now" for tests.
 
 ### NEEDS OWNER (rule 1)
-A role whose tool call is held for permission sends, immediately and before anything else:
+Any time the run cannot proceed without the owner — a held permission prompt, an approval (`approve
+team`, `team up`), a decision (GO / NO-GO, a deferral) — the role that is waiting sends, immediately and
+before anything else:
 ```
 [M14 tester→boss re:OWNER] NEEDS OWNER: docker compose up -d — permission prompt held in tester
 ```
-The boss's NEXT output to the owner starts with the line `Owner action needed in <session>: <command>`,
-separate from any analysis, and sends `OWNER <session> NEEDS "<command>" — <why>` to status. When the
-owner has acted, the role sends `[M.. role→boss re:OWNER] OWNER CLEARED` and the boss sends
-`OWNER <session> CLEAR`.
+The boss's NEXT output to the owner starts with the line `Owner action needed in <session>: <what>`,
+separate from any analysis, and sends `OWNER <role> NEEDS "<what>" — <why>` to status, which puts a
+"Waiting on you" banner on BOTH pages. When the boss itself is the one waiting (approval, decision), it
+sends `OWNER boss NEEDS "<what>" — <why>` BEFORE asking the owner. When the owner has acted, the waiting
+role sends `[M.. role→boss re:OWNER] OWNER CLEARED` (or the boss just proceeds) and the boss sends
+`OWNER <role> CLEAR`. A banner that outlives the wait is a lie; clear it in the same message that acts.
 
 ### Evidence block (tester → boss, inside the body)
 ````
@@ -98,7 +102,7 @@ DEFECT <Dn> open blocker|major|minor "<title>" owner <role>
 DEFECT <Dn> fixing|fix-pushed <sha>|verified|deferred|no-bug [— <note>]
 HEADER <key>=<value> [<key>=<value>…]        keys: title branch pr image stack head ci; values may be quoted
 TEAM <role> ACTIVE|DORMANT|NEEDS-OWNER — <activity> [since HH:MM]
-OWNER <role> NEEDS "<command>" — <why>
+OWNER <role> NEEDS "<what>" — <why>      any owner input: held prompt, approval, decision
 OWNER <role> CLEAR
 LOG [HH:MM] <text>
 REMAINING <text>            (replaces the Remaining panel; `REMAINING -` clears it)
