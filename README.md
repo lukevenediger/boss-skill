@@ -1,66 +1,203 @@
 # boss
 
-Run a piece of work as a **team of separately opened Claude Code sessions**: one *boss* that plans,
-briefs and decides; a *dev* that fixes; a *tester* that runs and gathers evidence; a *status* session
-that publishes a live status page and a threaded conversation page the owner can follow (and share).
+**Run a piece of work as a small team of Claude Code sessions, and follow it from a live page.**
+
+You open four terminals. One is the *boss*: it plans the work, proposes a team, briefs the others,
+reviews every change, and decides when it's done. A *dev* fixes things. A *tester* runs things and
+collects evidence. A *status* session publishes two pages you can open on your phone: a status
+tracker and a threaded log of everything the sessions said to each other.
+
+You stay the owner. The team stops and asks whenever it needs your decision, and the page tells you
+so in a banner you cannot miss.
+
+<p align="center">
+  <img src="docs/images/status-waiting-on-you.jpg" width="820" alt="Status page mid-run: a red 'Waiting on you' banner, the pet in bug-found mood, progress bar, team activity">
+</p>
+
+## Why
+
+Letting one Claude session do everything means it edits, tests and judges its own work in one
+context window, and you only see what it chooses to tell you. Splitting the work across sessions with
+strict roles gives you:
+
+- **Separation of hands.** The session that edits code never touches the test stack; the session that
+  runs tests never edits code; the one that decides never does either.
+- **Evidence you can check.** Every verdict comes with the command, its exit code and its output.
+- **A record.** Every message between sessions is numbered and kept, and rendered as a conversation
+  page with threads per test and per defect.
+- **No silent stalls.** A session held on a permission prompt tells the boss immediately, and the
+  boss puts it on the first line to you. The page shows a banner until you act.
+
+## Install
+
+Requirements: Claude Code CLI 2.1 or later, macOS or Linux, `python3` (3.10+), `bash`, `git`.
+Enough screen for four terminals.
+
+```bash
+git clone https://github.com/lukevenediger/boss-skill ~/boss-skill
+bash ~/boss-skill/install.sh
+```
+
+`install.sh` symlinks each skill under `skills/` into `~/.claude/skills`, so the clone is the source
+of truth and `git pull` updates it in place. Start a new Claude Code session; `/boss` now appears in
+the skill list.
+
+To remove: `bash ~/boss-skill/install.sh --uninstall`.
+
+> Do not also install this repo as a Claude Code plugin. Both installs would trigger at once.
+
+## Use it
+
+### 1. Start the boss
+
+In the repo you want worked on:
 
 ```
-┌ Terminal 1 ─ /boss ────────┐   briefs, triage, review     ┌ Terminal 2 ─ /boss-dev ────┐
-│ plan → team → run → wrap   │ ───────────────────────────▶ │ failing test → fix → gate  │
-│ owner talks here           │ ◀─── "Fix pushed: sha, test" │ → push                     │
-└────────────┬───────────────┘                              └────────────────────────────┘
-             │ TEST / DEFECT / TEAM / LOG lines             ┌ Terminal 3 ─ /boss-tester ─┐
-             ▼                                              │ owns the stack; verdict +  │
-┌ Terminal 4 ─ /boss-status ─┐                              │ evidence; defect reports   │
-│ status page + conversation │ ◀── every message, via the   └────────────────────────────┘
-│ page (published artifacts) │     shared run log
-└────────────────────────────┘
+claude
+/rename myrun-boss
+/boss fix the CSV splitter so `split.sh a,b,c` keeps the last field, and prove it with the gate
 ```
 
-Every message between roles goes through `boss-say`, which numbers it and appends it to a shared
-`conversation.jsonl`; the status session renders that log as a threaded conversation page next to the
-status page. A role whose command is held for a permission prompt sends `NEEDS OWNER` first, and the
-boss puts it on the first line to the owner — the one thing the previous run taught the hard way.
-
-## Install (this machine)
+Say what "done" looks like in one sentence. The boss drafts a short phased plan (you'll see it in
+plan mode) and then shows a **team proposal**: a table of roles, one model per role, who owns the
+shared infrastructure, and which permission mode every terminal must use. Reply:
 
 ```
-git clone https://github.com/lukevenediger/boss-skill ~/lukevenediger/boss-skill
-bash ~/lukevenediger/boss-skill/install.sh          # symlinks skills/* into ~/.claude/skills
+approve team
 ```
 
-The repo stays the source of truth; edits are live. Do not also install it as a plugin (the skills
-would trigger twice). `install.sh --uninstall` removes the links.
+(or say what to change: drop the tester for a docs-only run, add a reviewer, use a different model).
 
-## Use
+### 2. Open the other terminals
 
-1. Terminal 1, in the repo: `claude` → `/rename <run-id>-boss` → `/boss <what you want done>`.
-2. The boss drafts a phased plan, proposes a team (a model per role; status always on opus) and waits
-   for `approve team`.
-3. It prints the terminals to open. Open them, in the same permission mode, and say `team up`.
-4. Follow the two page links the boss gives you. Act on any "Owner action needed" line.
-5. At the end the boss asks you to sign off deferrals and writes GO / NO-GO on the page.
+The boss prints a block like this:
+
+```
+Open these terminals, in the same permission mode as this one (auto):
+
+Terminal 2 (dev):     cd /path/to/repo && claude --model opus     then  /rename myrun-dev     then  /boss-dev myrun
+Terminal 3 (tester):  cd /path/to/repo && claude --model sonnet   then  /rename myrun-tester  then  /boss-tester myrun
+Terminal 4 (status):  cd /path/to/repo && claude --model opus     then  /rename myrun-status  then  /boss-status myrun
+
+Say "team up" here when all three prompts are idle.
+```
+
+Open them exactly as printed. Each session announces itself to the boss. When all three prompts are
+idle, tell the boss:
+
+```
+team up
+```
+
+### 3. Follow along
+
+The boss's next message gives you two links: the **status page** and the **conversation page**. Open
+them anywhere. From here the team runs on its own: the boss briefs, the tester reports verdicts with
+evidence, defects get numbered, the dev fixes them test-first, the boss reviews each change and sends
+the tester back to re-verify, and the pages update after every step.
+
+Watch for two things:
+
+- **"Waiting on you"** at the top of either page. The run is blocked until you answer in the named
+  terminal, whether that's a permission prompt, an approval, or a GO / NO-GO decision.
+- **Defects** moving `open → fixing → fix-pushed → verified` on the board.
+
+### 4. Wrap up
+
+The boss asks you to sign off anything it wants to defer, writes GO or NO-GO, and closes the run
+with a summary. The status page ends like this:
+
+<p align="center">
+  <img src="docs/images/status-run-complete.jpg" width="820" alt="Status page after the run: a green 'Run complete' banner and a three-column summary of what was done, challenges and follow-ups">
+</p>
+
+You can close all four terminals. Everything the run produced stays under `~/.boss/runs/<run-id>/`:
+the plan, the full conversation log, every piece of evidence, and the rendered pages.
+
+## The conversation page
+
+Every message between sessions is numbered (`M1`, `M2`, …), threaded by what it's about (a test id,
+a defect id, or the run itself), and rendered newest-first with markdown, collapsible evidence, and a
+gold badge for your own decisions.
+
+<p align="center">
+  <img src="docs/images/conversation.jpg" width="820" alt="Conversation page: thread rail on the left, numbered messages with role badges, a red-outlined NEEDS OWNER message">
+</p>
+
+## Use cases
+
+**A test campaign before a merge.** "Test the new ingestion feature end to end on the local stack
+using the real supplier files in `./samples`, fix what breaks, and tell me if it's safe to merge."
+The boss writes a phased plan (preflight, happy path, edge cases, idempotency, permissions, reconciliation),
+the tester works through it with evidence, the dev fixes defects test-first, and you get a GO / NO-GO
+with the reasoning on one page. This is the run the skill was built from: 34 tests, 8 defects, all
+verified, one afternoon.
+
+**A bug-fix loop with independent verification.** "Users report `/export` returns 500 for accounts
+with no orders. Reproduce, fix, and prove it." The tester reproduces and files D1 with the exact
+request and response; the dev writes the failing test, fixes it, pushes; the boss reviews the diff;
+the tester re-runs the original repro against the rebuilt service. Nobody grades their own homework.
+
+**A release gate or migration rehearsal.** "Rehearse the database migration on a copy of last night's
+snapshot: time each step, confirm the app comes up, and list anything that would need a maintenance
+window." Add a `perf` or `dba` role through the proposal; the boss writes it a charter and it reports
+like any other session.
+
+**Anything where you want a paper trail.** The conversation log is the audit: who ran what, what it
+returned, who decided what, and when.
+
+## The roles
+
+| Role | Owns | Never |
+|---|---|---|
+| **boss** | the plan, briefs, read-only review of every change, triage, go/no-go, the status feed | edits the repo, runs git writes, touches the stack |
+| **dev** | the checkout and branch: failing test → fix → gate → commit → push | the shared stack, force-push |
+| **tester** | the shared stack; running exactly what the brief says; evidence; defect reports | editing or committing anything |
+| **status** | the two published pages | anything else; inventing a verdict |
+| **extra roles** | whatever the boss's charter says (`/boss-role <name> <run-id>`) | whatever it forbids |
+
+Models are proposed per run. Status always runs on the latest Opus. The boss runs on whatever model
+your session uses.
+
+## Things to know
+
+- **Same permission mode everywhere.** If one terminal runs in a different mode, messages between
+  sessions get held for approval and the run stalls silently. The boss prints the mode; match it.
+- **Session names matter.** `/rename <run-id>-<role>` is how the sessions find each other.
+- **Runtime lives in `~/.boss/`**, never in your repo. Delete a run directory when you're done with it.
+- **The boss will ask.** It stops for `approve team`, `team up`, deferrals, and GO / NO-GO. That's by
+  design; the page shows a banner each time.
+- **Pages are private artifacts** on claude.ai. Share them from the page's Share menu if colleagues
+  should see them.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `skills/boss/` | orchestrator skill + team-proposal, plan, brief and role-charter templates |
-| `skills/boss-dev/`, `skills/boss-tester/`, `skills/boss-status/`, `skills/boss-role/` | one charter per role |
-| `skills/boss-protocol/` | `protocol.md` (the contract), scripts `boss-run`, `boss-say`, `boss-state`, `boss-render` |
-| `skills/boss-status/templates/` | status page + conversation page (data-driven; JSON islands) |
-| `tests/` | `scripts.test.sh` (golden tests), `scenarios/` (pressure-test transcripts), `toy-repo.sh` |
-| `~/.boss/runs/<id>/` | runtime: run.json, plan.md, conversation.jsonl, state.json, evidence/, pages/ |
+| `skills/boss/` | orchestrator skill; templates for the team proposal, plan, briefs and role charters |
+| `skills/boss-dev/`, `boss-tester/`, `boss-status/`, `boss-role/` | one charter per role |
+| `skills/boss-protocol/` | `protocol.md` (the contract every role follows) and the scripts `boss-run`, `boss-say`, `boss-state`, `boss-render` |
+| `skills/boss-status/templates/` | the two pages, rendered from JSON |
+| `tests/` | script tests, pressure-test transcripts for each charter, a toy repo for a full dry run |
 
-## Test
+## Try it without risking anything
 
+```bash
+bash ~/boss-skill/tests/toy-repo.sh          # builds /tmp/boss-toy with one planted bug
+cd /tmp/boss-toy && claude
+/rename toy-boss
+/boss fix the last-field bug in lib/split.sh and prove it with the gate
 ```
-bash tests/scripts.test.sh        # scripts against golden files
-bash tests/toy-repo.sh            # builds a scratch repo with one planted bug for a full mini-run
+
+## Developing the skill
+
+```bash
+bash tests/scripts.test.sh                        # 21 golden tests for the scripts
+bash skills/boss-status/fixtures/smoke/preview.sh # renders both pages from a fixture into /tmp/boss-preview
 ```
 
-Skill behaviour was pressure-tested with subagents before and after writing each charter; the
-transcripts are in `tests/scenarios/`.
+Charters were written test-first: `tests/scenarios/baseline-*.md` records what fresh sessions did
+*without* each charter, `green-*.md` what they did with it. Change a charter the same way.
 
 ## License
 
