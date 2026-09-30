@@ -284,6 +284,23 @@ case_apply_header_and_log_and_remaining() {
   assert_eq "$out" $'applied: 0\nambiguous: HEADER bogus=1' "unknown header key is ambiguous"
 }
 
+case_apply_done_and_summary() {
+  fresh_home; init_run; state init >/dev/null
+  apply_lines "DEFECT D1 open major \"x\" owner dev" >/dev/null
+  apply_lines "DONE Fixed the last-field bug; gate green; merged." "SUMMARY did Added failing test, fixed split.sh" "SUMMARY challenge Tester prompt held 6 min" "SUMMARY followup Add CI job" "SUMMARY did Merged 1a2b3c4" >/dev/null
+  assert_eq "$(state_json | jq -r .done.headline)" "Fixed the last-field bug; gate green; merged."
+  assert_eq "$(state_json | jq -r .done.at)" "10:00" "done stamps now"
+  assert_eq "$(state_json | jq -c .summary)" '{"did":["Added failing test, fixed split.sh","Merged 1a2b3c4"],"challenges":["Tester prompt held 6 min"],"followups":["Add CI job"]}'
+  assert_eq "$(state_json | jq -r .mood)" "all-green" "DONE forces all-green even with an open defect"
+  apply_lines "SUMMARY clear" >/dev/null
+  assert_eq "$(state_json | jq -c .summary)" '{"did":[],"challenges":[],"followups":[]}'
+  apply_lines "DONE -" >/dev/null
+  assert_eq "$(state_json | jq -r .done)" "null"
+  assert_eq "$(state_json | jq -r .mood)" "bug-found" "clearing DONE returns to derived mood"
+  out="$(apply_lines "SUMMARY bogus text")"
+  assert_eq "$out" $'applied: 0\nambiguous: SUMMARY bogus text' "unknown summary kind is ambiguous"
+}
+
 case_state_show() {
   fresh_home; init_run; state init >/dev/null
   state plan-import "$GOLDEN/plan.md" >/dev/null
@@ -363,6 +380,7 @@ cases=(
   case_owner_needs_then_clear
   case_apply_unplanned_and_unknown_tests
   case_apply_header_and_log_and_remaining
+  case_apply_done_and_summary
   case_state_show
   case_render_fallback
   case_render_uses_template_dir

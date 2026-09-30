@@ -8,7 +8,7 @@ out="${1:-/tmp/boss-preview}"
 mkdir -p "$out"
 
 python3 - "$here" "$templates" "$out" <<'PY'
-import json, re, sys
+import json, os, re, sys
 fixtures, templates, out = sys.argv[1:4]
 
 def load(path):
@@ -29,7 +29,7 @@ def island(html, island_id, data):
     return html
 
 run = load(f"{fixtures}/run.json")
-state = load(f"{fixtures}/state.json")
+state = load(os.environ.get("BOSS_PREVIEW_STATE") or f"{fixtures}/state.json")
 conv = load_jsonl(f"{fixtures}/conversation.jsonl")
 
 for name, islands in (("status", {"boss-run": run, "boss-state": state}),

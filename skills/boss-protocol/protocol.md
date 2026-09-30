@@ -107,6 +107,8 @@ OWNER <role> CLEAR
 LOG [HH:MM] <text>
 REMAINING <text>            (replaces the Remaining panel; `REMAINING -` clears it)
 OUTCOME GO|NO-GO — <text>
+DONE <headline>              run complete: big banner on both pages, mood all-green (`DONE -` clears)
+SUMMARY did|challenge|followup <bullet>   one bullet per line, ≤ 3 per kind (`SUMMARY clear` resets)
 MOOD idle|testing|bug-found|fixing|all-green|auto
 ```
 `<Tid>` matches `[A-Z]\d+\.\d+` (P0.1, T2.3, V1.2 …). The `—` separator may be written `--`. Unknown test
@@ -129,9 +131,10 @@ accepts) → `fix-pushed <sha>` (boss, after dev replies) → `verified` (boss, 
  "owner_calls":[{"role":"tester","command":"…","why":"…","since":"HH:MM"}],
  "log":[{"time":"HH:MM","text":"…"}],
  "remaining":"…","outcome":{"verdict":"GO","text":"…"},
+ "done":{"headline":"…","at":"HH:MM"},"summary":{"did":["…"],"challenges":["…"],"followups":["…"]},
  "mood":"fixing","mood_override":null,"ambiguous":["…last apply's unparsed lines…"]}
 ```
-Mood auto-derivation (unless overridden): `OUTCOME GO` → all-green · any owner_call → bug-found ·
+Mood auto-derivation (unless overridden): `DONE` → all-green · `OUTCOME GO` → all-green · any owner_call → bug-found ·
 any defect `open` → bug-found · any defect `fixing|fix-pushed` → fixing · any test `running` or any
 team member `active` → testing · otherwise idle.
 

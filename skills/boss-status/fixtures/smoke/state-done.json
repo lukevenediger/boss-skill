@@ -127,14 +127,7 @@
       "since": "09:52"
     }
   ],
-  "owner_calls": [
-    {
-      "role": "tester",
-      "command": "docker compose exec db psql -c 'select * from orders'",
-      "why": "permission prompt held in tester",
-      "since": "09:50"
-    }
-  ],
+  "owner_calls": [],
   "log": [
     {
       "time": "09:10",
@@ -155,15 +148,26 @@
   ],
   "remaining": "T1.2 and T1.3 still to run. D1 needs a fix, gate, and a re-test before GO.",
   "outcome": null,
-  "mood": "bug-found",
+  "mood": "all-green",
   "mood_override": null,
   "ambiguous": [
     "TEST T9 PASSED"
   ],
-  "done": null,
+  "done": {
+    "headline": "Checkout totals fixed and merged as `1a2b3c4`; 5/5 tests green.",
+    "at": "11:20"
+  },
   "summary": {
-    "did": [],
-    "challenges": [],
-    "followups": []
+    "did": [
+      "Failing test for free-shipping tax added, `totals.ts` fixed, merged `1a2b3c4`",
+      "D2 deprecation warning deferred with owner sign-off"
+    ],
+    "challenges": [
+      "Tester's `compose exec` sat on a permission prompt for 6 min before the owner saw it"
+    ],
+    "followups": [
+      "Add the totals suite to CI",
+      "Silence the D2 warning in the next dependency bump"
+    ]
   }
 }

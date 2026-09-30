@@ -41,6 +41,9 @@ RE_LOG = re.compile(rf"^LOG\s+(?:({HHMM})\s+)?(.+)$")
 RE_REMAINING = re.compile(r"^REMAINING\s+(.+)$")
 RE_OUTCOME = re.compile(rf"^OUTCOME\s+(GO|NO-GO)\s+{DASH}\s*(.*)$")
 RE_MOOD = re.compile(r"^MOOD\s+(idle|testing|bug-found|fixing|all-green|auto)$")
+RE_DONE = re.compile(r"^DONE\s+(.+)$")
+RE_SUMMARY = re.compile(r"^SUMMARY\s+(did|challenge|followup|clear)(?:\s+(.+))?$")
+SUMMARY_KEYS = {"did": "did", "challenge": "challenges", "followup": "followups"}
 
 RE_PHASE = re.compile(r"^###\s+(?:Phase\s+(\d+)|P(\d+))\s+(?:—|--|-)\s+(.+?)\s*$")
 RE_PLAN_TEST = re.compile(rf"^-\s+({TID})\s+(\S+):\s+(.+?)\s*$")
@@ -68,6 +71,8 @@ def new_state(run: dict, title: str | None) -> dict:
         "log": [],
         "remaining": None,
         "outcome": None,
+        "done": None,
+        "summary": {"did": [], "challenges": [], "followups": []},
         "mood": "idle",
         "mood_override": None,
         "ambiguous": [],
@@ -90,6 +95,8 @@ def save_state(rdir: str, st: dict) -> None:
 def derive_mood(st: dict) -> str:
     if st.get("mood_override"):
         return st["mood_override"]
+    if st.get("done"):
+        return "all-green"
     outcome = st.get("outcome") or {}
     if outcome.get("verdict") == "GO":
         return "all-green"
@@ -237,6 +244,25 @@ def apply_line(st: dict, line: str, now: str) -> bool:
     if (m := RE_MOOD.match(line)):
         mood = m.group(1)
         st["mood_override"] = None if mood == "auto" else mood
+        return True
+
+    if (m := RE_DONE.match(line)):
+        text = m.group(1).strip()
+        st["done"] = None if text == "-" else {"headline": text, "at": now}
+        return True
+
+    if (m := RE_SUMMARY.match(line)):
+        kind, text = m.group(1), (m.group(2) or "").strip()
+        summary = st.setdefault("summary", {"did": [], "challenges": [], "followups": []})
+        if kind == "clear":
+            if text:
+                return False
+            for k in summary:
+                summary[k] = []
+            return True
+        if not text:
+            return False
+        summary.setdefault(SUMMARY_KEYS[kind], []).append(text)
         return True
 
     return False

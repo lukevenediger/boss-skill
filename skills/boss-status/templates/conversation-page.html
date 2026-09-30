@@ -116,6 +116,10 @@
   .alert li { font-size:16px; line-height:1.45; color:#fff; overflow-wrap:anywhere; background:rgba(0,0,0,.18); border-radius:10px; padding:10px 14px }
   .alert li b { font-family:var(--font-mono); font-size:13px; background:#fff; color:var(--bad); padding:3px 8px; border-radius:6px; margin-right:6px }
   .alert li code { background:rgba(255,255,255,.18); color:#fff }
+  .done { background:var(--ok); color:#fff; border:3px solid var(--ok); border-radius:14px; padding:16px 22px; display:grid; gap:4px }
+  .done h2 { color:#fff; margin:0; font:800 20px/1.15 var(--font-body); letter-spacing:-.01em; display:flex; align-items:center; gap:10px }
+  .done h2::before { content:"\2713"; font-size:16px; width:28px; height:28px; border-radius:50%; background:#fff; color:var(--ok); display:grid; place-items:center; flex:none }
+  .done .headline { font-size:15px; line-height:1.45; overflow-wrap:anywhere }
   @keyframes owner-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(185,64,47,.55) } 50% { box-shadow:0 0 0 12px rgba(185,64,47,0) } }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   @media (prefers-reduced-motion: reduce) { .alert, .alert h2::before { animation:none } }
@@ -125,6 +129,7 @@
 <body>
 <div class="wrap">
   <section class="alert" id="ownercall" hidden></section>
+  <section class="done" id="donebanner" hidden></section>
   <header class="panel head" id="head"></header>
   <div class="cols">
     <aside class="rail" id="rail"></aside>
@@ -227,6 +232,9 @@
     calls.forEach(c => { const li = H(ul, 'li'); li.append(el('b', null, str(c.session || c.role)), ' ', el('code', null, str(c.command)), ' — ' + str(c.why)); });
     alertEl.hidden = false;
   }
+
+  const doneEl = document.getElementById('donebanner');
+  if (state.done && state.done.headline) { H(doneEl, 'h2', null, 'Run complete'); H(doneEl, 'div', 'headline', str(state.done.headline)); doneEl.hidden = false; }
 
   // ---- header ----
   const head = document.getElementById('head');

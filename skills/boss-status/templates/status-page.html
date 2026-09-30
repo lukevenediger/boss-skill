@@ -62,6 +62,20 @@
   .runmeta span b { color:var(--ink); font-weight:600 }
   .runmeta span b code { background:none; padding:0; font-size:inherit }
 
+  .done { background:var(--ok); color:#fff; border:3px solid var(--ok); border-radius:14px; padding:22px 24px; display:grid; gap:6px }
+  .done h2 { color:#fff; margin:0; font:800 26px/1.15 var(--font-body); letter-spacing:-.01em; text-transform:none; display:flex; align-items:center; gap:12px }
+  .done h2::before { content:"\2713"; font-size:22px; width:36px; height:36px; border-radius:50%; background:#fff; color:var(--ok); display:grid; place-items:center; flex:none }
+  .done .headline { font-size:17px; line-height:1.45; overflow-wrap:anywhere }
+  .done .headline code { background:rgba(255,255,255,.18); color:#fff }
+  .done .at { font:500 11px/1 var(--font-mono); opacity:.85 }
+  .summary { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:18px 26px }
+  @media (max-width:720px) { .summary { grid-template-columns:1fr } }
+  .summary h3 { font:600 11px/1 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px }
+  .summary h3.did { color:var(--ok) } .summary h3.challenges { color:var(--warn) } .summary h3.followups { color:var(--info) }
+  .summary ul { margin:0; padding-left:18px; display:grid; gap:7px; font-size:14px; line-height:1.5 }
+  .summary li::marker { color:var(--muted) }
+  .summary li { overflow-wrap:anywhere }
+  .summary .empty { padding-left:0 }
   .resume { border-color:var(--ok) }
   .resume h2 { color:var(--ok) }
   .resume .verdict { font:700 22px/1.2 var(--font-body); margin:0 0 8px; color:var(--ok); letter-spacing:-.01em }
@@ -215,7 +229,7 @@
   let mood = str(state.mood_override || state.mood);
   if (!mood || mood === 'auto') {
     const ds = defects.map(d => str(d.status));
-    mood = (state.outcome && str(state.outcome.verdict) === 'GO') ? 'all-green'
+    mood = (state.done && state.done.headline) ? 'all-green' : (state.outcome && str(state.outcome.verdict) === 'GO') ? 'all-green'
       : calls.length ? 'bug-found' : ds.includes('open') ? 'bug-found'
       : ds.some(s => s === 'fixing' || s === 'fix-pushed') ? 'fixing'
       : (n.running || team.some(m => str(m.state) === 'active')) ? 'testing' : 'idle';
@@ -234,6 +248,14 @@
     if (c.since) li.append(el('span', 'since', 'since ' + c.since));
   });
   alert.hidden = calls.length === 0;
+  // 1b. Done banner sits above the hero once the run is closed.
+  const done = state.done && state.done.headline ? state.done : null;
+  if (done) {
+    const d = H(app, 'section', 'done');
+    H(d, 'h2', null, 'Run complete');
+    fmt(H(d, 'div', 'headline'), done.headline);
+    if (done.at) H(d, 'div', 'at', 'closed ' + done.at);
+  }
 
   // 2. Hero
   const hero = H(app, 'section', 'panel hero');
@@ -259,6 +281,20 @@
   const stat = (v, label) => { const s = H(stats, 'span'); s.append(el('b', null, v), ' ' + label); };
   const sv = H(stats, 'span'); sv.append(el('b', null, verdicts), ' / ', el('b', null, total), ' with a verdict');
   stat(n.pass, 'pass'); stat(n.fail, 'fail'); stat(n.blocked, 'blocked'); stat(n.running, 'running'); stat(openDefects, 'open defects');
+
+  // 2b. Summary: the owner's closing read (what was done, challenges, follow-ups)
+  const summary = state.summary && typeof state.summary === 'object' ? state.summary : {};
+  const sumKinds = [['did', 'What was done'], ['challenges', 'Challenges'], ['followups', 'Follow-ups']];
+  if (sumKinds.some(([k]) => Array.isArray(summary[k]) && summary[k].length)) {
+    const sec = H(app, 'section', 'panel'); H(sec, 'h2', null, 'Summary');
+    const grid = H(sec, 'div', 'summary');
+    sumKinds.forEach(([k, label]) => {
+      const col = H(grid, 'div'); H(col, 'h3', k, label);
+      const items = Array.isArray(summary[k]) ? summary[k] : [];
+      if (!items.length) { H(col, 'p', 'empty', 'none'); return; }
+      const ul = H(col, 'ul'); items.forEach(t => fmt(H(ul, 'li'), t));
+    });
+  }
 
   // 3. Outcome / Remaining
   const outcome = state.outcome && (state.outcome.verdict || state.outcome.text) ? state.outcome : null;

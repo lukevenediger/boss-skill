@@ -58,7 +58,11 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
    you"; send `OWNER boss CLEAR` in the same feed batch that acts on the answer.
 8. **Gate on the merge ref.** Before GO: CI green on the PR's merge ref (`gh pr checks`), not local gate.
 9. **Wrap.** Deferrals need the owner's word; `OUTCOME GO|NO-GO` to status; update project memory;
-   `boss-run close`.
+   `boss-run close`. Then close the page out in ONE feed batch:
+   `DONE <one-line headline of what shipped>` · up to 3 × `SUMMARY did <bullet>` · up to 3 ×
+   `SUMMARY challenge <bullet>` · up to 3 × `SUMMARY followup <bullet>` · `OWNER boss CLEAR` ·
+   `TEAM <role> DORMANT — run closed` for every role. Each bullet is one line, specific (shas, counts,
+   ids), no adjectives. The owner reads this instead of the log.
 
 ## Quick reference
 
