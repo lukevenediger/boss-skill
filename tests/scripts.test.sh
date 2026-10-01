@@ -89,7 +89,8 @@ case_run_close_marks_closed() {
   local out
   out="$(bash "$SCRIPTS/boss-run" close)"
   assert_eq "$(jq -r .closed "$BOSS_HOME/runs/w1/run.json")" "2026-09-30T10:00:00+02:00" "closed ts"
-  echo "$out" | grep -qi "deferred defects" || fail "checklist mentions deferred defects"
+  echo "$out" | grep -qi "deferrals" || fail "checklist mentions deferrals"
+  echo "$out" | grep -qi "sessions stay open" || fail "checklist says sessions stay open"
   echo "$out" | grep -qi "OUTCOME" || fail "checklist mentions OUTCOME"
   echo "$out" | grep -qi "memory" || fail "checklist mentions memory"
   echo "$out" | grep -qi "sessions" || fail "checklist mentions sessions"
@@ -399,6 +400,45 @@ case_two_concurrent_runs_resolve_by_session() {
   assert_eq "$(wc -l < "$BOSS_HOME/runs/beta/conversation.jsonl" | tr -d ' ')" "2" "single open run resolves without registration"
 }
 
+case_list_and_clean() {
+  fresh_home
+  BOSS_NOW=2026-09-01T10:00:00 bash "$SCRIPTS/boss-run" init old-a --repo /tmp/a >/dev/null
+  BOSS_NOW=2026-09-01T10:00:00 bash "$SCRIPTS/boss-run" close old-a >/dev/null
+  bash "$SCRIPTS/boss-run" init old-b --repo /tmp/b >/dev/null
+  bash "$SCRIPTS/boss-run" close old-b >/dev/null
+  bash "$SCRIPTS/boss-run" init live --repo /tmp/l >/dev/null
+  run register dev --session-id sid-live --run live >/dev/null
+  mkdir -p "$BOSS_HOME/ctx"; echo '{}' > "$BOSS_HOME/ctx/sid-live.json"; echo '{}' > "$BOSS_HOME/ctx/sid-stale.json"
+  out="$(run list)"
+  echo "$out" | grep -q "old-a.*closed" || fail "list shows closed run"
+  echo "$out" | grep -q "live.*open" || fail "list shows open run"
+  # dry run removes nothing
+  out="$(run clean --dry-run)"
+  echo "$out" | grep -q "old-a" && echo "$out" | grep -q "old-b" || fail "dry-run names both closed runs"
+  [ -d "$BOSS_HOME/runs/old-a" ] || fail "dry-run kept old-a"
+  # clean removes closed runs and stale ctx files, keeps the open run and its ctx
+  run clean --yes >/dev/null
+  [ ! -d "$BOSS_HOME/runs/old-a" ] && [ ! -d "$BOSS_HOME/runs/old-b" ] || fail "closed runs removed"
+  [ -d "$BOSS_HOME/runs/live" ] || fail "open run kept"
+  [ -f "$BOSS_HOME/ctx/sid-live.json" ] || fail "live ctx kept"
+  [ ! -f "$BOSS_HOME/ctx/sid-stale.json" ] || fail "stale ctx removed"
+  # an open run is refused without --force, removed with it; pointer reset
+  set +e; run clean --yes live >/dev/null 2>&1; rc=$?; set -e
+  assert_eq "$rc" "1" "open run refused"
+  [ -d "$BOSS_HOME/runs/live" ] || fail "open run still there"
+  run clean --yes --force live >/dev/null
+  [ ! -d "$BOSS_HOME/runs/live" ] || fail "forced removal"
+  [ ! -s "$BOSS_HOME/current" ] || fail "pointer cleared when its run was removed"
+  # --older-than keeps recent closed runs
+  BOSS_NOW=2026-09-01T10:00:00 bash "$SCRIPTS/boss-run" init ancient --repo /tmp/x >/dev/null
+  BOSS_NOW=2026-09-01T10:00:00 bash "$SCRIPTS/boss-run" close ancient >/dev/null
+  bash "$SCRIPTS/boss-run" init recent --repo /tmp/y >/dev/null
+  bash "$SCRIPTS/boss-run" close recent >/dev/null
+  run clean --yes --older-than 7 >/dev/null
+  [ ! -d "$BOSS_HOME/runs/ancient" ] || fail "ancient removed"
+  [ -d "$BOSS_HOME/runs/recent" ] || fail "recent kept"
+}
+
 case_state_show() {
   fresh_home; init_run; state init >/dev/null
   state plan-import "$GOLDEN/plan.md" >/dev/null
@@ -482,6 +522,7 @@ cases=(
   case_ctx_register_statusline_and_fallback
   case_resume_and_milestone_header
   case_two_concurrent_runs_resolve_by_session
+  case_list_and_clean
   case_state_show
   case_render_fallback
   case_render_uses_template_dir

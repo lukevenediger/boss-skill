@@ -29,3 +29,5 @@ never assume a symlink layout or the executable bit. State lives under `~/.boss/
 Tests: `bash tests/scripts.test.sh` from the repo root.
 | `bash "$tools_dir/boss-ctx"` | context-window usage per role (register first: `boss-run register <role> --session-id "$CLAUDE_SESSION_ID"`) |
 | `bash …/boss-statusline <your status line command…>` | optional status-line wrapper that records exact usage for boss-ctx (settings.json) |
+| `bash "$tools_dir/boss-run" list` | every run with open/closed and age |
+| `bash "$tools_dir/boss-run" clean [--older-than DAYS] [--dry-run] [-y] [ids…]` | remove closed runs (open ones only with `--force`) and stale context records |

@@ -125,6 +125,16 @@ and closes the run with a summary. The status page ends like this:
 
 Everything a run produced stays under `~/.boss/runs/<run-id>/`: the plan, the full conversation
 log, every piece of evidence, the pages. **Leave the terminals open** — see *Reusing the sessions*.
+When you no longer need old runs:
+
+```
+bash ~/boss-skill/skills/boss-protocol/scripts/boss-run list              # what's there
+bash ~/boss-skill/skills/boss-protocol/scripts/boss-run clean --dry-run   # what would go
+bash ~/boss-skill/skills/boss-protocol/scripts/boss-run clean -y          # remove every closed run
+bash ~/boss-skill/skills/boss-protocol/scripts/boss-run clean -y --older-than 14
+```
+
+Open runs are never removed without `--force`.
 
 ### 6. Start the next run in the same terminals
 

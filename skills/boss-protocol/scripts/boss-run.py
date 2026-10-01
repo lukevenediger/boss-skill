@@ -69,12 +69,120 @@ def cmd_close(a) -> int:
     print(f"run {run['id']} closed at {run['closed']}")
     print()
     print("wrap checklist:")
-    print("  [ ] deferred defects each have owner sign-off (deferred is the owner's call)")
-    print("  [ ] OUTCOME GO|NO-GO is on the status page (boss-state apply, then boss-render + publish)")
+    print("  [ ] minor deferrals listed under REMAINING for the owner's review; major/blocker deferrals have the owner's word")
+    print("  [ ] OUTCOME GO|NO-GO, DONE and SUMMARY lines are on the status page (boss-state apply, boss-render, publish)")
     print("  [ ] memory updated with what this run taught")
-    print("  [ ] sessions can be closed: " + ", ".join(r["session"] for r in run.get("roles", [])))
+    print("  [ ] sessions stay open and idle: " + ", ".join(r["session"] for r in run.get("roles", [])) + " — the next /boss reuses them")
     print()
     print(f"run dir: {rdir}")
+    return 0
+
+
+def _runs() -> list[dict]:
+    base = os.path.join(_boss.boss_home(), "runs")
+    out = []
+    if not os.path.isdir(base):
+        return out
+    for rid in sorted(os.listdir(base)):
+        rp = os.path.join(base, rid, "run.json")
+        if not os.path.exists(rp):
+            continue
+        try:
+            run = _boss.load_json(rp)
+        except SystemExit:
+            continue
+        run["_dir"] = os.path.join(base, rid)
+        run["_mtime"] = os.path.getmtime(rp)
+        out.append(run)
+    return out
+
+
+def _closed_age_days(run: dict) -> float | None:
+    from datetime import datetime, timezone
+    c = run.get("closed")
+    if not c:
+        return None
+    try:
+        when = datetime.fromisoformat(c)
+    except ValueError:
+        return None
+    now = _boss.now_in(run.get("tz") or "UTC")
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=now.tzinfo)
+    return (now - when).total_seconds() / 86400
+
+
+def cmd_list(a) -> int:
+    runs = _runs()
+    if not runs:
+        print("no runs")
+        return 0
+    pointer = _boss._read_pointer()
+    for run in runs:
+        state = "closed" if run.get("closed") else "open"
+        age = _closed_age_days(run)
+        extra = f"  closed {run['closed'][:16]} ({age:.0f}d ago)" if age is not None else f"  started {run.get('started')}"
+        mark = " <- current" if run["id"] == pointer else ""
+        roles = ", ".join(r.get("role", "?") for r in run.get("roles", []))
+        print(f"{run['id']:<16} {state:<6}{extra}  roles: {roles}{mark}")
+    return 0
+
+
+def cmd_clean(a) -> int:
+    import shutil
+    runs = _runs()
+    by_id = {r["id"]: r for r in runs}
+    if a.ids:
+        missing = [i for i in a.ids if i not in by_id]
+        if missing:
+            _boss.die("no such run: " + ", ".join(missing), 1)
+        targets = [by_id[i] for i in a.ids]
+    else:
+        targets = [r for r in runs if r.get("closed")]
+        if a.older_than is not None:
+            targets = [r for r in targets if (_closed_age_days(r) or 0) >= a.older_than]
+    open_targets = [r for r in targets if not r.get("closed")]
+    if open_targets and not a.force:
+        _boss.die("refusing to remove OPEN run(s): " + ", ".join(r["id"] for r in open_targets)
+                  + " — close them first (boss-run close <id>) or pass --force", 1)
+    if not targets:
+        print("nothing to clean")
+    for r in targets:
+        print(f"{'would remove' if a.dry_run else 'remove'} {r['id']}  ({'closed ' + r['closed'][:16] if r.get('closed') else 'OPEN'})  {r['_dir']}")
+    # ctx records whose session is not part of any surviving run
+    keep_ids = {r["id"] for r in runs} - {r["id"] for r in targets}
+    live_sids = {role.get("session_id") for r in runs if r["id"] in keep_ids for role in r.get("roles", []) if role.get("session_id")}
+    cdir = os.path.join(_boss.boss_home(), "ctx")
+    stale = []
+    if os.path.isdir(cdir):
+        for fn in os.listdir(cdir):
+            if fn.endswith(".json") and fn[:-5] not in live_sids:
+                stale.append(os.path.join(cdir, fn))
+    if stale:
+        print(f"{'would remove' if a.dry_run else 'remove'} {len(stale)} stale context record(s) in {cdir}")
+    if a.dry_run:
+        return 0
+    if targets and not a.yes:
+        try:
+            ans = input(f"remove {len(targets)} run(s)? [y/N] ")
+        except EOFError:
+            ans = ""
+        if ans.strip().lower() not in ("y", "yes"):
+            print("aborted")
+            return 1
+    for r in targets:
+        shutil.rmtree(r["_dir"], ignore_errors=True)
+    for p in stale:
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+    pointer = _boss._read_pointer()
+    if pointer and pointer in {r["id"] for r in targets}:
+        with open(os.path.join(_boss.boss_home(), "current"), "w") as f:
+            f.write("")
+        print("cleared ~/.boss/current (it pointed at a removed run)")
+    print(f"removed {len(targets)} run(s), {len(stale)} stale context record(s)")
     return 0
 
 
@@ -174,6 +282,17 @@ def main(argv) -> int:
     s = sub.add_parser("close")
     s.add_argument("id", nargs="?")
     s.set_defaults(fn=cmd_close)
+
+    s = sub.add_parser("list", help="every run under ~/.boss/runs with open/closed and age")
+    s.set_defaults(fn=cmd_list)
+
+    s = sub.add_parser("clean", help="remove closed runs (default: all closed) and stale context records")
+    s.add_argument("ids", nargs="*", help="specific run ids; default = every closed run")
+    s.add_argument("--older-than", type=float, metavar="DAYS", help="only closed runs older than this")
+    s.add_argument("--force", action="store_true", help="allow removing an OPEN run")
+    s.add_argument("--dry-run", action="store_true")
+    s.add_argument("--yes", "-y", action="store_true", help="do not ask")
+    s.set_defaults(fn=cmd_clean)
 
     s = sub.add_parser("show")
     s.add_argument("id", nargs="?")

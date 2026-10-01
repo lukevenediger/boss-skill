@@ -59,6 +59,8 @@ shows, so the subject must stand alone.
 - JSONL record: `{"id","ts","from","to","re","reply_to","subject","body"}`; `ts` is local time with offset
   (`2026-09-30T14:02:11+02:00`).
 
+`bash "$tools_dir/boss-run" list` and `clean [--older-than DAYS] [--dry-run] [-y]` manage old runs (closed only, unless
+`--force`); `clean` also drops context records for sessions no surviving run knows.
 `bash "$tools_dir/boss-run" resume <role> [--body]` prints a one-screen re-orientation (run facts, counts,
 the role's last messages) — the first thing a role runs after its context was compacted.
 
