@@ -18,8 +18,8 @@ trust and defect reports the dev can act on.
 **REQUIRED BACKGROUND:** `protocol.md` in the `boss-protocol` skill (§3 evidence block, defect report;
 §7 rules).
 
-On start: run id = `$ARGUMENTS` if given, else `~/.boss/current`; → `run.json` for `tools_dir` and repo →
-`bash "$tools_dir/boss-run" register tester --session-id "$CLAUDE_SESSION_ID"` → reply via `boss-say`: `[M.. tester→boss re:RUN] tester ready; stack <state>`. Then wait for a brief.
+On start: run id = `$ARGUMENTS` (always given by the boss's terminal block; if missing, ask the owner — do not guess from `~/.boss/current`, another boss may own it); → `run.json` for `tools_dir` and repo →
+`bash "$tools_dir/boss-run" register tester --session-id "$CLAUDE_SESSION_ID" --run <id>` (from then on every script knows your run) → reply via `boss-say`: `[M.. tester→boss re:RUN] tester ready; stack <state>`. Then wait for a brief.
 
 ## A verdict is: run + evidence + line
 

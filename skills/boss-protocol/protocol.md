@@ -8,7 +8,7 @@ the status session can parse it and the owner can skim it.
 ## 1. Run directory
 
 ```
-~/.boss/current                      text file: the active run id
+~/.boss/current                      convenience pointer to the last run created — NOT the source of truth
 ~/.boss/runs/<run-id>/
   run.json          {id, title, repo, branch, tz, started, tools_dir, roles:[{role, session, model}], pages:{status,conversation}}
   plan.md           the boss's phased plan (copy)
@@ -19,6 +19,13 @@ the status session can parse it and the owner can skim it.
 ```
 `tools_dir` is the absolute path of `boss-protocol/scripts`, written by `boss-run init`. Roles invoke
 scripts as `bash "$tools_dir/boss-say" …`; never assume a symlink layout.
+
+**Which run am I in?** Several bosses may run on one machine, so scripts resolve the run per call:
+`--run <id>` → `$BOSS_RUN` → the run that registered this session's `CLAUDE_SESSION_ID` → the only
+open run → otherwise they refuse and name the open runs. `boss-run init` registers the boss session
+itself; every other role registers at start (`boss-run register <role> --session-id "$CLAUDE_SESSION_ID"
+--run <id>`). After that no role needs to pass `--run` again. Always start a role with the run id
+(`/boss-dev <id>`); the `current` pointer is only a fallback for a lone run.
 
 ## 2. Roles, in one table
 

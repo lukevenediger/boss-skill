@@ -368,6 +368,37 @@ case_resume_and_milestone_header() {
   echo "$out" | grep -q "protocol.md" || fail "resume points at the protocol"
 }
 
+case_two_concurrent_runs_resolve_by_session() {
+  fresh_home
+  bash "$SCRIPTS/boss-run" init alpha --repo /tmp/a >/dev/null
+  bash "$SCRIPTS/boss-run" init beta  --repo /tmp/b >/dev/null      # overwrites ~/.boss/current with beta
+  run register dev --session-id sid-alpha-dev --run alpha >/dev/null
+  run register dev --session-id sid-beta-dev  --run beta  >/dev/null
+  # alpha's dev, with no --run and no pointer help, must land in alpha
+  CLAUDE_SESSION_ID=sid-alpha-dev say --from dev --to boss --re RUN --subject "alpha dev ready" </dev/null >/dev/null
+  assert_eq "$(wc -l < "$BOSS_HOME/runs/alpha/conversation.jsonl" | tr -d ' ')" "1" "alpha dev's message went to alpha"
+  assert_eq "$(wc -l < "$BOSS_HOME/runs/beta/conversation.jsonl" | tr -d ' ')" "0" "nothing leaked into beta"
+  # boss-state/render for alpha's session resolve the same way
+  CLAUDE_SESSION_ID=sid-alpha-dev state init >/dev/null
+  [ -f "$BOSS_HOME/runs/alpha/state.json" ] || fail "state init resolved to alpha"
+  [ ! -f "$BOSS_HOME/runs/beta/state.json" ] || fail "state init did not touch beta"
+  # an unregistered session with two open runs is refused, naming them, instead of guessing from the pointer
+  set +e; out="$(CLAUDE_SESSION_ID=sid-unknown say --from dev --to boss --re RUN --subject "x" </dev/null 2>&1)"; rc=$?; set -e
+  assert_eq "$rc" "1" "ambiguous run exits 1"
+  echo "$out" | grep -q "alpha" && echo "$out" | grep -q "beta" || fail "error names both open runs"
+  # --run always wins
+  CLAUDE_SESSION_ID=sid-alpha-dev say --from dev --to boss --re RUN --subject "to beta" --run beta </dev/null >/dev/null
+  assert_eq "$(wc -l < "$BOSS_HOME/runs/beta/conversation.jsonl" | tr -d ' ')" "1" "--run overrides the session lookup"
+  # init registers the boss automatically from the environment
+  CLAUDE_SESSION_ID=sid-gamma-boss bash "$SCRIPTS/boss-run" init gamma --repo /tmp/g >/dev/null
+  assert_eq "$(jq -r '.roles[]|select(.role=="boss")|.session_id' "$BOSS_HOME/runs/gamma/run.json")" "sid-gamma-boss" "init registers the boss session"
+  # a closed run does not count as open
+  bash "$SCRIPTS/boss-run" close alpha >/dev/null
+  bash "$SCRIPTS/boss-run" close gamma >/dev/null
+  CLAUDE_SESSION_ID=sid-unknown say --from dev --to boss --re RUN --subject "only beta open" </dev/null >/dev/null
+  assert_eq "$(wc -l < "$BOSS_HOME/runs/beta/conversation.jsonl" | tr -d ' ')" "2" "single open run resolves without registration"
+}
+
 case_state_show() {
   fresh_home; init_run; state init >/dev/null
   state plan-import "$GOLDEN/plan.md" >/dev/null
@@ -450,6 +481,7 @@ cases=(
   case_apply_done_and_summary
   case_ctx_register_statusline_and_fallback
   case_resume_and_milestone_header
+  case_two_concurrent_runs_resolve_by_session
   case_state_show
   case_render_fallback
   case_render_uses_template_dir

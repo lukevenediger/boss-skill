@@ -190,6 +190,8 @@ your session uses.
 - **Same permission mode everywhere.** If one terminal runs in a different mode, messages between
   sessions get held for approval and the run stalls silently. The boss prints the mode; match it.
 - **Session names matter.** `/rename <run-id>-<role>` is how the sessions find each other.
+- **Several teams at once is fine.** Each role registers its session with its run at start, so two
+  bosses on one machine never cross wires; always start a role with the run id the boss printed.
 - **Runtime lives in `~/.boss/`**, never in your repo. Delete a run directory when you're done with it.
 - **The boss asks twice, then runs.** `approve team` and `team up` at the start; after that it stops
   only for a blocker or a held permission prompt, and the page shows a banner each time.

@@ -20,7 +20,7 @@ never summarise beyond what a feed line says, and you tell the boss exactly what
 ## On start
 
 1. Run id = `$ARGUMENTS` if given, else `~/.boss/current`; read `run.json` (`tools_dir`, title, pages).
-2. `bash "$tools_dir/boss-run" register status --session-id "$CLAUDE_SESSION_ID"`; then
+2. `bash "$tools_dir/boss-run" register status --session-id "$CLAUDE_SESSION_ID" --run <id>` (from then on every script knows your run); then
    `bash "$tools_dir/boss-state" init` (if `state.json` is absent) then `bash "$tools_dir/boss-render"`.
 3. Publish `pages/status.html` with the Artifact tool (title = run title, icon `clipboard`, description
    one sentence); publish `pages/conversation.html` (title `<run title> — Conversation`, icon `chat`).

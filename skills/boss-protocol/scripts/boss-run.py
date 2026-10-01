@@ -46,6 +46,11 @@ def cmd_init(a) -> int:
         "roles": roles,
         "pages": {},
     }
+    sid = os.environ.get("CLAUDE_SESSION_ID")
+    if sid:
+        for r in roles:
+            if r.get("role") == "boss":
+                r["session_id"] = sid   # the session running init IS the boss; no separate register needed
     _boss.write_json(run_json, run)
     with open(os.path.join(rdir, "conversation.jsonl"), "w"):
         pass  # empty, append-only from here on

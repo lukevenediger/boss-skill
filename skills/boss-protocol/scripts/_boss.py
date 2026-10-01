@@ -18,16 +18,66 @@ def die(msg: str, code: int = 2) -> "NoReturn":
     sys.exit(code)
 
 
-def current_run_id() -> str:
+def _read_pointer() -> str | None:
     p = os.path.join(boss_home(), "current")
     try:
         with open(p) as f:
             rid = f.read().strip()
     except FileNotFoundError:
-        die(f"no active run: {p} missing (run boss-run init)")
-    if not rid:
-        die(f"no active run: {p} is empty")
-    return rid
+        return None
+    return rid or None
+
+
+def _open_runs() -> list[dict]:
+    """Every run.json under runs/ that has not been closed, newest first."""
+    base = os.path.join(boss_home(), "runs")
+    out = []
+    if not os.path.isdir(base):
+        return out
+    for rid in os.listdir(base):
+        rp = os.path.join(base, rid, "run.json")
+        if not os.path.exists(rp):
+            continue
+        try:
+            with open(rp) as f:
+                run = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if run.get("closed"):
+            continue
+        run["_mtime"] = os.path.getmtime(rp)
+        out.append(run)
+    out.sort(key=lambda r: r["_mtime"], reverse=True)
+    return out
+
+
+def current_run_id() -> str:
+    """Which run this call belongs to, with several bosses allowed on one machine.
+
+    Order: $BOSS_RUN → the run that registered this session's id (CLAUDE_SESSION_ID) → the only open
+    run → the `current` pointer if it names an open run and nothing else is open → refuse, naming the
+    open runs (pass --run). The pointer alone is never trusted while two runs are open.
+    """
+    env = os.environ.get("BOSS_RUN")
+    if env:
+        return env
+    sid = os.environ.get("CLAUDE_SESSION_ID")
+    opens = _open_runs()
+    if sid:
+        for run in opens:
+            for role in run.get("roles", []):
+                if role.get("session_id") == sid:
+                    return run["id"]
+    if len(opens) == 1:
+        return opens[0]["id"]
+    pointer = _read_pointer()
+    if not opens:
+        if pointer:
+            return pointer  # closed-but-named run: reads of history still work
+        die("no run found: run boss-run init, or pass --run <id>")
+    die("several runs are open (" + ", ".join(r["id"] for r in opens) + ") and this session is not "
+        "registered with any of them: pass --run <id>, or register first with "
+        "`boss-run register <role> --session-id \"$CLAUDE_SESSION_ID\" --run <id>`", 1)
 
 
 def run_dir(run_id: str | None = None) -> str:

@@ -18,8 +18,8 @@ pushed fixes with proof. Nobody else edits the repo; you touch nothing else.
 superpowers:systematic-debugging (find the cause before touching code) and
 superpowers:test-driven-development (the failing test comes first, and you watch it fail).
 
-On start: run id = `$ARGUMENTS` if given, else `~/.boss/current`; → `run.json` for `tools_dir`,
-repo and branch → `bash "$tools_dir/boss-run" register dev --session-id "$CLAUDE_SESSION_ID"` →
+On start: run id = `$ARGUMENTS` (always given by the boss's terminal block; if missing, ask the owner — do not guess from `~/.boss/current`, another boss may own it); → `run.json` for `tools_dir`,
+repo and branch → `bash "$tools_dir/boss-run" register dev --session-id "$CLAUDE_SESSION_ID" --run <id>` (from then on every script knows your run) →
 `git status` clean and on the branch → reply to boss via `boss-say`:
 `[M.. dev→boss re:RUN] dev ready on <branch> @ <sha7>`. Then wait for a brief.
 

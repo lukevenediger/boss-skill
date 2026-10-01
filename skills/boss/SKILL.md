@@ -52,7 +52,8 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
 2. **Propose the team.** Fill `team-proposal.md`: a model per role, status always present and always
    on opus, one named infra owner, this session's permission mode. Wait for `approve team`.
 3. **Create the run.** `bash "<tools_dir>/boss-run" init <id> …`, then
-   `boss-run register boss --session-id "$CLAUDE_SESSION_ID"`, then `boss-state init`, then copy the
+   (`init` registers this session as the boss; several bosses may run on one machine, each resolving its
+   own run from its session id), then `boss-state init`, then copy the
    plan to the run dir and `boss-state plan-import plan.md`. Quote the importer's own line
    (`imported N phases, M tests`) to the owner; do not count by hand. Print the terminal block from
    `team-proposal.md` verbatim. Wait for "team up".
