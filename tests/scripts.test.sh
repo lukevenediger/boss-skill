@@ -351,6 +351,23 @@ PY
 )" "4" "render injects a context entry per role"
 }
 
+case_resume_and_milestone_header() {
+  fresh_home; init_run; state init >/dev/null
+  apply_lines "HEADER milestone=M2/11" >/dev/null
+  assert_eq "$(state_json | jq -r .header.milestone)" "M2/11" "milestone is a header key"
+  printf 'first brief\n' | say --from boss --to dev --re W1.1 --subject "W1.1 brief" >/dev/null
+  printf 'second brief\n' | say --from boss --to dev --re W1.2 --subject "W1.2 brief" >/dev/null
+  say --from dev --to boss --re W1.1 --subject "Done W1.1: abc1234, test t.sh" </dev/null >/dev/null
+  apply_lines 'OWNER tester NEEDS "docker compose up" — held' >/dev/null
+  out="$(run resume dev)"
+  echo "$out" | grep -q "run w1" || fail "resume names the run"
+  echo "$out" | grep -q "milestone M2/11" || fail "resume shows the milestone"
+  echo "$out" | grep -q "W1.2 brief" || fail "resume lists the latest brief received"
+  echo "$out" | grep -q "Done W1.1" || fail "resume lists the latest message sent"
+  echo "$out" | grep -q "tester" || fail "resume lists open owner calls"
+  echo "$out" | grep -q "protocol.md" || fail "resume points at the protocol"
+}
+
 case_state_show() {
   fresh_home; init_run; state init >/dev/null
   state plan-import "$GOLDEN/plan.md" >/dev/null
@@ -432,6 +449,7 @@ cases=(
   case_apply_header_and_log_and_remaining
   case_apply_done_and_summary
   case_ctx_register_statusline_and_fallback
+  case_resume_and_milestone_header
   case_state_show
   case_render_fallback
   case_render_uses_template_dir

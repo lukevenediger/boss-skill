@@ -104,6 +104,54 @@ def cmd_register(a) -> int:
     return 0
 
 
+def cmd_resume(a) -> int:
+    """One-screen re-orientation for a role after its context was compacted (or on a fresh start)."""
+    import json as _json
+    rdir, run = _boss.load_run(a.run)
+    role = a.role
+    st = None
+    sp = os.path.join(rdir, "state.json")
+    if os.path.exists(sp):
+        st = _boss.load_json(sp)
+    recs = []
+    cp = os.path.join(rdir, "conversation.jsonl")
+    if os.path.exists(cp):
+        with open(cp, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        recs.append(_json.loads(line))
+                    except _json.JSONDecodeError:
+                        pass
+    hdr = (st or {}).get("header") or {}
+    print(f"run {run['id']} — {run.get('title') or ''}   repo {run.get('repo')}   branch {run.get('branch')}")
+    print(f"tools_dir {run.get('tools_dir')}   milestone {hdr.get('milestone') or '-'}   page {((run.get('pages') or {}).get('status')) or '-'}")
+    if st:
+        tests = [t for ph in st.get("phases", []) for t in ph.get("tests", [])]
+        counts = {}
+        for t in tests:
+            counts[t.get("state")] = counts.get(t.get("state"), 0) + 1
+        open_d = [d for d in st.get("defects", []) if d.get("status") in ("open", "fixing", "fix-pushed")]
+        print(f"tests {len(tests)}: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) + f"   open defects {len(open_d)}: " + ", ".join(d['id'] for d in open_d))
+        calls = st.get("owner_calls") or []
+        if calls:
+            print("owner calls: " + "; ".join(f"{c.get('role')} needs {c.get('command')}" for c in calls))
+    mine_in = [r for r in recs if r.get("to") == role][-a.last:]
+    mine_out = [r for r in recs if r.get("from") == role][-a.last:]
+    print(f"\nlast {len(mine_in)} received by {role}:")
+    for r in mine_in:
+        print(f"  [{r.get('id')} {r.get('from')}→{r.get('to')} re:{r.get('re')}] {r.get('subject')}")
+    print(f"last {len(mine_out)} sent by {role}:")
+    for r in mine_out:
+        print(f"  [{r.get('id')} {r.get('from')}→{r.get('to')} re:{r.get('re')}] {r.get('subject')}")
+    if mine_in and a.body:
+        last = mine_in[-1]
+        print(f"\n--- body of {last.get('id')} ---\n{last.get('body') or ''}")
+    print(f"\nre-read: {os.path.join(os.path.dirname(run.get('tools_dir') or ''), 'protocol.md')} and your role charter; continue from the latest brief above.")
+    return 0
+
+
 def main(argv) -> int:
     p = argparse.ArgumentParser(prog="boss-run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -134,6 +182,13 @@ def main(argv) -> int:
     s.add_argument("--window", type=int)
     s.add_argument("--run")
     s.set_defaults(fn=cmd_register)
+
+    s = sub.add_parser("resume", help="re-orient a role after compaction: run facts, counts, its last messages")
+    s.add_argument("role")
+    s.add_argument("--last", type=int, default=3)
+    s.add_argument("--body", action="store_true", help="also print the body of the latest message received")
+    s.add_argument("--run")
+    s.set_defaults(fn=cmd_resume)
 
     s = sub.add_parser("set-page")
     s.add_argument("page", choices=["status", "conversation"])

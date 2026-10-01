@@ -44,6 +44,14 @@ For each brief from boss — a defect (`re:D<n>`) or a work item (`re:W<n>.<m>`)
    Body: root cause (one paragraph), what the test asserts, gate summary line, anything the tester
    must do differently (rebuild, env var, migration). The header never claims more than the body proves.
 
+## After compaction, or on `NEW RUN <id>`
+
+Your context will be compacted automatically when it fills; that is expected and nobody needs to be
+told. The moment you notice you have been compacted (a summary where your history was), run
+`bash "$tools_dir/boss-run" resume dev --body`, re-read this charter, and continue from the latest
+brief it shows. Do not announce the compaction to the owner; do not wait for anyone.
+When boss sends `NEW RUN <id>`, re-run your On start steps for that id in this same session.
+
 ## What you never do
 
 - Force-push, rewrite history, or push to any branch but the run's.

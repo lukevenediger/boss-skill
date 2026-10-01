@@ -52,6 +52,9 @@ shows, so the subject must stand alone.
 - JSONL record: `{"id","ts","from","to","re","reply_to","subject","body"}`; `ts` is local time with offset
   (`2026-09-30T14:02:11+02:00`).
 
+`bash "$tools_dir/boss-run" resume <role> [--body]` prints a one-screen re-orientation (run facts, counts,
+the role's last messages) — the first thing a role runs after its context was compacted.
+
 CLI: `bash "$tools_dir/boss-say" --from <role> --to <role> --re <ref> [--reply M<k>] --subject "<one line>"
 [--body "<text>" | --body-file <path> | body on stdin] [--run <id>]`. Exit 2 on a validation error (nothing appended), 1 on a
 missing run. `BOSS_HOME` overrides `~/.boss`; `BOSS_NOW=<ISO local>` pins "now" for tests.
@@ -100,7 +103,7 @@ anything it cannot parse as `ambiguous` instead of guessing.
 TEST <Tid> PASS|FAIL|BLOCKED|RUNNING|PENDING [— <evidence one-liner>]
 DEFECT <Dn> open blocker|major|minor "<title>" owner <role>
 DEFECT <Dn> fixing|fix-pushed <sha>|verified|deferred|no-bug [— <note>]
-HEADER <key>=<value> [<key>=<value>…]        keys: title branch pr image stack head ci; values may be quoted
+HEADER <key>=<value> [<key>=<value>…]        keys: title branch pr image stack head ci milestone; values may be quoted
 TEAM <role> ACTIVE|DORMANT|NEEDS-OWNER — <activity> [since HH:MM]
 OWNER <role> NEEDS "<what>" — <why>      any owner input: held prompt, approval, decision
 OWNER <role> CLEAR
@@ -164,13 +167,15 @@ from those islands; status edits data, never markup. Status publishes `pages/sta
 4. **CI on the merge ref.** Local gate green is not merge-ready; the boss checks `gh pr checks` before GO.
 5. **Images by content hash.** A container's created-time can predate the commit it contains.
 6. **Defect loop transitions are explicit** and each one reaches the status page.
-7. **Wrap needs the owner:** deferred defects are the owner's call; `OUTCOME` on the page; memory updated.
+7. **Wrap leaves the sessions alone:** `OUTCOME` + `REMAINING` on the page for the owner's review, memory
+   updated; nobody is asked to close or rename a session. The next run reuses them (`NEW RUN <id>`).
 8. **Same permission mode everywhere**, or messages stall silently.
 
 ## 8. Context windows
 
-A session cannot see how full its own context is, and a session that compacts mid-task loses its
-judgement. So every role registers on start:
+A session cannot see how full its own context is. Compaction happens automatically when the window
+fills and is NOT an owner stop: the role runs `boss-run resume <role> --body` and continues. The
+meters exist so the owner can see it coming. Every role registers on start:
 `bash "$tools_dir/boss-run" register <role> --session-id "$CLAUDE_SESSION_ID"`.
 `boss-ctx` then reads each role's usage — from `~/.boss/ctx/<session_id>.json` when the owner has
 wired `boss-statusline` into their status line (accurate), else from the session transcript's last
@@ -178,6 +183,6 @@ usage record — an estimate when the model's window is unknown (200k assumed, s
 warn; a role that knows its window registers it: `boss-run register <role> --session-id … --window 1000000`) — and `boss-render` puts it on both pages: a meter per team row, and an amber
 **"Context nearly full"** banner at `alert` (default 90%; `warn` at 75%; `ctx_warn` / `ctx_alert` in
 run.json override). Status's reply to the boss names any role at warn or above (`context: dev 82%`);
-at alert the boss's next line to the owner is `Owner action needed in <session>: /compact`.
+at alert the boss logs it; the owner is asked to `/compact` only if a session visibly stalls afterwards.
 `/compact` keeps the session name, so the team keeps messaging it; after compacting, a role re-reads
 `run.json` and its charter and carries on. The boss itself is a role here too.

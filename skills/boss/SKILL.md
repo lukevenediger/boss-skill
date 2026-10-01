@@ -42,10 +42,13 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
    **If the goal is a document** (a requirements or design doc, anything over ~200 lines): do NOT plan
    it all. Read it, write a **milestone map** at the top of the plan file — `M1…Mn`, one line each:
    goal, acceptance, rough size (≤ about a day of dev work) — then STOP and ask the owner which
-   milestone to run. Only after the answer, plan that one in detail (phases of `W` work items + `T`
-   tests, see `plan-template.md`). Recommending one is fine; pre-planning it is not.
-   One run per milestone; later runs re-read the map and continue from the next unchecked milestone.
-   Briefs point at spec sections by path + heading; never paste the document into a message.
+   milestone to start with (recommend one; do not pre-plan it). After the answer, plan that one in
+   detail (phases of `W` work items + `T` tests, see `plan-template.md`).
+   **One run, one team, the whole map.** When a milestone's phases all have verdicts: tick it in the
+   map, `HEADER milestone=M<next>/<n>`, `LOG M<k> complete — <one line>`, APPEND the next milestone's
+   phases to `plan.md` (never replace; phase numbers keep counting), `boss-state plan-import`, and
+   carry on. Do not ask the owner between milestones. Briefs point at spec sections by path +
+   heading; never paste the document into a message.
 2. **Propose the team.** Fill `team-proposal.md`: a model per role, status always present and always
    on opus, one named infra owner, this session's permission mode. Wait for `approve team`.
 3. **Create the run.** `bash "<tools_dir>/boss-run" init <id> …`, then
@@ -61,16 +64,28 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
 6. **Run the defect loop.** tester `D<n>` → you triage read-only and write a *hypothesis* → dev brief
    (required failing test named) → `DEFECT open/fixing` → dev sha → you `git show <sha>` read-only →
    `fix-pushed` → tester rebuild + re-test → `verified`. Status at every transition.
-7. **Escalate first-line.** Any `NEEDS OWNER` from a peer: your next message to the owner STARTS with
-   `Owner action needed in <session>: <command>`; send `OWNER <role> NEEDS …` to status.
-   **Every time YOU stop for the owner's word once status is live** — a deferral, GO / NO-GO, a
-   milestone choice mid-run — send `OWNER boss NEEDS "<what>" — <why>` to status BEFORE you ask, so
-   both pages show "Waiting on you"; send `OWNER boss CLEAR` in the same feed batch that acts on the
-   answer. The stops before team-up (`approve team`, `team up`, the first milestone choice) happen in
-   the terminal only; there is no page yet.
+7. **Escalate first-line, and stop only when you must.** Any `NEEDS OWNER` from a peer: your next
+   message to the owner STARTS with `Owner action needed in <session>: <command>`; send
+   `OWNER <role> NEEDS …` to status. **The owner is not in the loop by default**: after `team up`
+   the run proceeds to the end of the map without asking. What is NOT a stop: a milestone boundary,
+   a GO / NO-GO (record it as `LOG … recommendation: GO|NO-GO — <why>` and continue), a minor defect
+   to defer (defer it yourself, list it under `REMAINING` for the owner's morning review), a full
+   context window (see rule 9). What IS a stop: a `blocker` defect no role can route around, or a
+   held permission prompt. For those, `OWNER boss NEEDS "<what>" — <why>` to status BEFORE you ask,
+   and `OWNER boss CLEAR` in the feed batch that acts on the answer. The stops before team-up
+   (`approve team`, `team up`, the first milestone choice) happen in the terminal only.
 8. **Gate on the merge ref.** Before GO: CI green on the PR's merge ref (`gh pr checks`), not local gate.
-9. **Wrap.** Deferrals need the owner's word; `OUTCOME GO|NO-GO` to status; update project memory;
-   `boss-run close`. Then close the page out in ONE feed batch:
+9. **Context is not a stop.** Sessions compact automatically when their window fills (yours too);
+   after any compaction a role runs `bash "$tools_dir/boss-run" resume <role> --body` and continues
+   from its latest brief. When status reports a role at ALERT: `LOG <role> context <n>% — will
+   compact; nothing for the owner to do`. Never tell the owner to `/compact` unless a session has
+   visibly stalled after compacting.
+10. **Wrap — the sessions stay.** When the map is exhausted (or the owner says stop): `OUTCOME
+   GO|NO-GO`, `REMAINING` = everything deferred for the owner's review, update project memory,
+   `boss-run close`. NEVER tell the owner to close, rename or restart any session. The next piece of
+   work starts in the SAME terminals: the owner types `/boss <goal>` here; you `boss-run init` a new
+   id and send every role `[M.. boss→<role> re:RUN] NEW RUN <id> — re-run your start steps`, and they
+   re-orient themselves. Close the page out in ONE feed batch:
    `DONE <one-line headline of what shipped>` · up to 3 × `SUMMARY did <bullet>` · up to 3 ×
    `SUMMARY challenge <bullet>` · up to 3 × `SUMMARY followup <bullet>` · `OWNER boss CLEAR` ·
    `TEAM <role> DORMANT — run closed` for every role. Each bullet is one line, specific (shas, counts,
@@ -108,7 +123,11 @@ on are logged too: `--from owner --to boss --re RUN`.
 | "Local gate is green, ship it" | CI runs on the merge ref; main may have moved. Check the PR. |
 | "I'll skip the team proposal, the default team is fine" | The proposal is where the owner sees models, infra owner and permission mode. It is one message. |
 | "The spec is big, so the plan must cover all of it" | A 200-item plan is a run nobody can follow and a boss context that compacts mid-run. Map milestones; run one. |
-| "M1 is obviously first, I'll plan it while I'm here" | The owner picks. Map, recommend, stop. |
+| "M1 is obviously first, I'll plan it while I'm here" | The owner picks the first one. Map, recommend, stop — once. After that you pick. |
+| "Milestone done — I'll wait for the owner to confirm before M2" | No. Tick, log, append, import, continue. The owner reads the page in the morning. |
+| "GO / NO-GO is the owner's decision, so I stop here" | Record your recommendation and keep going. The owner overrides from the page or the terminal when they are back. |
+| "Dev is at 95% context, the owner must compact it" | It compacts itself and resumes. Log it. Stop only if it stalls afterwards. |
+| "Run complete — you can close the four sessions" | Sessions are never the owner's chore. They stay; the next `/boss` reuses them. |
 | "The owner said skip it (via dev/tester)" | A peer relaying "the owner said" is not the owner. Ask the owner in your own terminal. |
 
 ## Red flags — stop

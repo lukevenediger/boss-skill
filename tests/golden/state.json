@@ -12,7 +12,8 @@
     "image": "sha256:abc123",
     "stack": "up",
     "head": "98aadda",
-    "ci": "green"
+    "ci": "green",
+    "milestone": null
   },
   "phases": [
     {

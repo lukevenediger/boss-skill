@@ -17,6 +17,8 @@ The boss proposes a team for THIS piece of work before anything else happens. Th
 
 Shared infrastructure owner: tester. Permission mode for all sessions: <this session's mode>.
 Run id: <id>   Repo: <path>   Branch: <branch>   Timezone: <tz>
+Attendance: attended (you may be asked about blockers) | unattended (nothing asks; blockers are
+logged and routed around, deferrals listed for your review). Default: unattended.
 Reply `approve team`, or say what to change.
 ```
 
@@ -61,3 +63,12 @@ Say "team up" here when all three prompts are idle.
 
 Every terminal starts in the repo, status included (same permission scope, same `.claude` settings).
 Extra roles get a line each with `/boss-role <role> <id>`.
+
+**Unattended runs** (overnight, remote): a held permission prompt is the one thing that stalls a
+session with nobody there. Add `--permission-prompts none` to every `claude` line in the block; a
+denied call then comes back as a refusal the role reports as `BLOCKED` instead of a prompt nobody
+answers, and the boss routes around it. Say in the proposal that this is what the block will carry.
+
+**These sessions are reused.** Nothing in this skill ever asks the owner to close, rename or restart
+a session. A finished run leaves the four terminals idle; the next `/boss` in the boss terminal
+starts a new run in the same sessions.

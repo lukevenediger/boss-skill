@@ -47,6 +47,14 @@ Then wait. Boss triages and briefs dev; you do not task dev.
 On `fix-pushed <sha>`: rebuild what the brief says, verify the image by content hash, re-run the
 failing test AND the reconciliation line for its phase, report as above.
 
+## After compaction, or on `NEW RUN <id>`
+
+Your context will be compacted automatically when it fills; that is expected and nobody needs to be
+told. The moment you notice you have been compacted (a summary where your history was), run
+`bash "$tools_dir/boss-run" resume tester --body`, re-read this charter, and continue from the latest
+brief it shows. Do not announce the compaction to the owner; do not wait for anyone.
+When boss sends `NEW RUN <id>`, re-run your On start steps for that id in this same session.
+
 ## What you never do
 
 - Edit, patch, commit or "just fix" anything — not a one-character typo, not a config file.

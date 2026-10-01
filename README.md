@@ -104,17 +104,27 @@ Watch for two things:
   terminal, whether that's a permission prompt, an approval, or a GO / NO-GO decision.
 - **Defects** moving `open → fixing → fix-pushed → verified` on the board.
 
-### 4. Wrap up
+### 4. Let it run
 
-The boss asks you to sign off anything it wants to defer, writes GO or NO-GO, and closes the run
-with a summary. The status page ends like this:
+After `team up` the team does not need you. Milestones roll into the next one on their own, GO / NO-GO
+is recorded as a recommendation, minor defects are deferred and listed for your review, and sessions
+that fill their context compact themselves and carry on. It stops only for a blocker nobody can route
+around or a permission prompt (and for overnight runs there is a flag that turns prompts into
+refusals the team routes around — see *Running unattended*).
+
+### 5. Wrap up
+
+When the map is exhausted the boss writes the outcome, lists everything deferred for your review,
+and closes the run with a summary. The status page ends like this:
 
 <p align="center">
   <img src="docs/images/status-run-complete.jpg" width="820" alt="Status page after the run: a green 'Run complete' banner and a three-column summary of what was done, challenges and follow-ups">
 </p>
 
-You can close all four terminals. Everything the run produced stays under `~/.boss/runs/<run-id>/`:
-the plan, the full conversation log, every piece of evidence, and the rendered pages.
+**Leave the terminals open.** The next piece of work starts with another `/boss …` in the boss
+terminal; it reuses the same sessions and tells each role about the new run. Nothing in this skill
+ever asks you to close, rename or restart a session. Everything a run produced stays under
+`~/.boss/runs/<run-id>/`: the plan, the full conversation log, every piece of evidence, the pages.
 
 ## The conversation page
 
@@ -173,19 +183,20 @@ your session uses.
   sessions get held for approval and the run stalls silently. The boss prints the mode; match it.
 - **Session names matter.** `/rename <run-id>-<role>` is how the sessions find each other.
 - **Runtime lives in `~/.boss/`**, never in your repo. Delete a run directory when you're done with it.
-- **The boss will ask.** It stops for `approve team`, `team up`, deferrals, and GO / NO-GO. That's by
-  design; the page shows a banner each time.
-- **Compact when told.** When the page says a session's context is nearly full, run `/compact` in
-  that terminal. The session keeps its name and picks up from the run directory.
+- **The boss asks twice, then runs.** `approve team` and `team up` at the start; after that it stops
+  only for a blocker or a held permission prompt, and the page shows a banner each time.
+- **Compaction is automatic.** The amber banner is information, not a chore. `/compact` by hand only
+  if a session stalls after compacting.
 - **Pages are private artifacts** on claude.ai. Share them from the page's Share menu if colleagues
   should see them.
 
 ## Context windows
 
-Each session's context fills up over a long run; when one compacts mid-task it loses its judgement.
-The status page shows a small context meter on every team row and an amber **"Context nearly full"**
-banner (default 90%) telling you which terminal to `/compact` in. The session name survives
-compaction, so the team carries on.
+Each session's context fills up over a long run. When it does, Claude Code compacts it automatically
+and the session re-orients itself from the run directory (`boss-run resume`) and carries on; the
+session name and its messages survive. You do not need to do anything. The status page shows a small
+context meter on every team row and an amber banner at 90% so you can see it coming; `/compact` by
+hand only if a session visibly stalls afterwards.
 
 <p align="center">
   <img src="docs/images/team-context-meters.jpg" width="820" alt="Team panel: each session row shows its activity, state chip and a context meter; dev is red at 92%, tester amber at 78%">
@@ -198,6 +209,14 @@ shipped wrapper into your status line, keeping whatever command you already have
 ```json
 "statusLine": { "type": "command", "command": "bash ~/boss-skill/skills/boss-protocol/scripts/boss-statusline <your existing command>" }
 ```
+
+## Running unattended
+
+For an overnight or remote run, answer the team proposal with `approve team, unattended`. The boss
+then prints the terminal lines with `--permission-prompts none`, so a call that would have waited on
+a permission prompt comes back as a refusal the role reports as BLOCKED and the boss routes around.
+Everything else is already unattended by default: milestones chain, GO / NO-GO is recorded as a
+recommendation, deferrals wait for you under *Remaining*. Read the page in the morning.
 
 ## Layout
 

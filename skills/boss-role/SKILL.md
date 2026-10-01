@@ -35,6 +35,14 @@ do nothing but announce yourself.
 - Evidence per **Evidence rules**; when in doubt, quote the lines you are judging.
 - A held permission prompt: `NEEDS OWNER: <command> — <why>` to boss, first, own message.
 
+## After compaction, or on `NEW RUN <id>`
+
+Your context will be compacted automatically when it fills; that is expected and nobody needs to be
+told. The moment you notice you have been compacted (a summary where your history was), run
+`bash "$tools_dir/boss-run" resume <role> --body`, re-read this charter, and continue from the latest
+brief it shows. Do not announce the compaction to the owner; do not wait for anyone.
+When boss sends `NEW RUN <id>`, re-run your On start steps for that id in this same session.
+
 ## Common mistakes
 
 | You catch yourself thinking | Reality |

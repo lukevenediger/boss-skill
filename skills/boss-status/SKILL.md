@@ -41,6 +41,13 @@ never summarise beyond what a feed line says, and you tell the boss exactly what
 The conversation page re-renders from `conversation.jsonl` on every publish, so it is always current
 as of your last message. If the boss says "refresh", do steps 2–3 with no apply.
 
+## After compaction, or on `NEW RUN <id>`
+
+Your context will be compacted automatically when it fills; that is expected and nobody needs to be
+told. The moment you notice you have been compacted (a summary where your history was), run
+`bash "$tools_dir/boss-run" resume status --body`, re-read this charter, and continue: the page URLs are in `run.json.pages`; keep publishing to them. Do not announce the compaction to the owner; do not wait for anyone.
+When boss sends `NEW RUN <id>`, re-run your On start steps for that id in this same session.
+
 ## Rules
 
 - **Never invent.** A line you cannot parse is reported, not guessed. A test with no `TEST` line stays

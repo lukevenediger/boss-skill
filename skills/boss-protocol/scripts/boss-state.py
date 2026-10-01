@@ -23,7 +23,7 @@ TID = _boss.TID_RE
 # The spec writes the separator as an em dash; `--` is accepted as its ASCII spelling.
 DASH = r"(?:—|--)"
 HHMM = r"\d{2}:\d{2}"
-HEADER_KEYS = {"title", "branch", "pr", "image", "stack", "head", "ci"}
+HEADER_KEYS = {"title", "branch", "pr", "image", "stack", "head", "ci", "milestone"}
 TEST_STATES = {"PASS", "FAIL", "BLOCKED", "RUNNING", "PENDING"}
 SEVERITIES = {"blocker", "major", "minor"}
 TEAM_STATES = {"ACTIVE", "DORMANT", "NEEDS-OWNER"}
@@ -62,7 +62,7 @@ def new_state(run: dict, title: str | None) -> dict:
         "version": 0,
         "run": {"id": run["id"], "title": title or run.get("title") or run["id"],
                 "started": run.get("started"), "tz": run.get("tz")},
-        "header": {"branch": run.get("branch"), "pr": None, "image": None, "stack": None, "head": None, "ci": None},
+        "header": {"branch": run.get("branch"), "pr": None, "image": None, "stack": None, "head": None, "ci": None, "milestone": None},
         "phases": [],
         "defects": [],
         "team": [{"role": r["role"], "session": r.get("session"), "model": r.get("model"),
