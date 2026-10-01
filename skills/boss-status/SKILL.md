@@ -41,6 +41,9 @@ never summarise beyond what a feed line says, and you tell the boss exactly what
 The conversation page re-renders from `conversation.jsonl` on every publish, so it is always current
 as of your last message. If the boss says "refresh", do steps 2–3 with no apply.
 
+If `~/.boss/runs/<id>/run.json` does not exist yet, the boss has not run `boss-run init`: say so once to the
+owner in one line, then poll for the file every ~20 s and register the moment it appears.
+
 ## After compaction, or on `NEW RUN <id>`
 
 Your context will be compacted automatically when it fills; that is expected and nobody needs to be

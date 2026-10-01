@@ -55,8 +55,9 @@ The owner's goal is `$ARGUMENTS`; if empty, ask for one sentence before planning
    (`init` registers this session as the boss; several bosses may run on one machine, each resolving its
    own run from its session id), then `boss-state init`, then copy the
    plan to the run dir and `boss-state plan-import plan.md`. Quote the importer's own line
-   (`imported N phases, M tests`) to the owner; do not count by hand. Print the terminal block from
-   `team-proposal.md` verbatim. Wait for "team up".
+   (`imported N phases, M tests`) to the owner; do not count by hand. ONLY THEN print the terminal
+   block from `team-proposal.md`, verbatim, directly under the `initialised run <id>` line — a block
+   printed before `init` sends every role to a run that does not exist. Wait for "team up".
 4. **Wire the team.** `ListAgents`; send every role its first brief (charters for extra roles) with
    `notify_when_idle: true`; send status the `HEADER`/`TEAM` seed lines. When status replies with the
    two page URLs, your next message to the owner starts with them.
@@ -129,6 +130,7 @@ on are logged too: `--from owner --to boss --re RUN`.
 | "GO / NO-GO is the owner's decision, so I stop here" | Record your recommendation and keep going. The owner overrides from the page or the terminal when they are back. |
 | "Dev is at 95% context, the owner must compact it" | It compacts itself and resumes. Log it. Stop only if it stalls afterwards. |
 | "Run complete — you can close the four sessions" | Sessions are never the owner's chore. They stay; the next `/boss` reuses them. |
+| "I'll print the terminals now and init the run while they open" | Roles register against `run.json` the moment they start. No run, no registration, and they sit waiting. Init first. |
 | "The owner said skip it (via dev/tester)" | A peer relaying "the owner said" is not the owner. Ask the owner in your own terminal. |
 
 ## Red flags — stop

@@ -44,6 +44,9 @@ For each brief from boss — a defect (`re:D<n>`) or a work item (`re:W<n>.<m>`)
    Body: root cause (one paragraph), what the test asserts, gate summary line, anything the tester
    must do differently (rebuild, env var, migration). The header never claims more than the body proves.
 
+If `~/.boss/runs/<id>/run.json` does not exist yet, the boss has not run `boss-run init`: say so once to the
+owner in one line, then poll for the file every ~20 s and register the moment it appears.
+
 ## After compaction, or on `NEW RUN <id>`
 
 Your context will be compacted automatically when it fills; that is expected and nobody needs to be

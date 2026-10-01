@@ -47,6 +47,9 @@ Then wait. Boss triages and briefs dev; you do not task dev.
 On `fix-pushed <sha>`: rebuild what the brief says, verify the image by content hash, re-run the
 failing test AND the reconciliation line for its phase, report as above.
 
+If `~/.boss/runs/<id>/run.json` does not exist yet, the boss has not run `boss-run init`: say so once to the
+owner in one line, then poll for the file every ~20 s and register the moment it appears.
+
 ## After compaction, or on `NEW RUN <id>`
 
 Your context will be compacted automatically when it fills; that is expected and nobody needs to be
