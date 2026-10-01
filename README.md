@@ -27,8 +27,10 @@ strict roles gives you:
   page with threads per test and per defect.
 - **No silent stalls.** A session held on a permission prompt tells the boss immediately, and the
   boss puts it on the first line to you. The page shows a banner until you act.
-- **No silent forgetting.** Each session's context usage is on the page; when one is nearly full the
-  page tells you which terminal to `/compact` in before it loses the plot.
+- **No silent forgetting.** Each session's context is on the page; a full one compacts itself and
+  re-orients from the run directory instead of losing the plot.
+- **No babysitting.** Set the team up once; runs chain milestones and roll into the next `/boss` in
+  the same terminals. Overnight runs need nobody at the keyboard.
 
 ## Install
 
@@ -121,10 +123,16 @@ and closes the run with a summary. The status page ends like this:
   <img src="docs/images/status-run-complete.jpg" width="820" alt="Status page after the run: a green 'Run complete' banner and a three-column summary of what was done, challenges and follow-ups">
 </p>
 
-**Leave the terminals open.** The next piece of work starts with another `/boss …` in the boss
-terminal; it reuses the same sessions and tells each role about the new run. Nothing in this skill
-ever asks you to close, rename or restart a session. Everything a run produced stays under
-`~/.boss/runs/<run-id>/`: the plan, the full conversation log, every piece of evidence, the pages.
+Everything a run produced stays under `~/.boss/runs/<run-id>/`: the plan, the full conversation
+log, every piece of evidence, the pages. **Leave the terminals open** — see *Reusing the sessions*.
+
+### 6. Start the next run in the same terminals
+
+```
+/boss <next goal>
+```
+
+That's the whole step. See *Reusing the sessions* for what happens.
 
 ## The conversation page
 
@@ -210,13 +218,46 @@ shipped wrapper into your status line, keeping whatever command you already have
 "statusLine": { "type": "command", "command": "bash ~/boss-skill/skills/boss-protocol/scripts/boss-statusline <your existing command>" }
 ```
 
+## Reusing the sessions
+
+You set the team up once. After that, every run reuses the same four terminals, and nothing in this
+skill ever asks you to close, rename or restart one.
+
+- **Next run:** type `/boss <goal>` in the boss terminal. The boss creates a new run id, sends each
+  role `NEW RUN <id>`, and the roles re-run their own start steps for it. New pages, same sessions.
+- **Milestones:** inside a run, the boss chains from one milestone to the next by itself (ticks the
+  map, appends the next phases, re-briefs). You are not asked in between.
+- **Compaction:** when a session's context fills, Claude Code compacts it automatically. The session
+  keeps its name, re-orients itself with `boss-run resume`, and carries on from its last brief. The
+  page shows a meter and an amber banner so you can see it coming; nothing for you to do.
+- **If a session dies anyway** (laptop rebooted, terminal closed): open a terminal in the repo,
+  `claude --resume <id>-<role>` (the name resolves the session), and the role picks up from the run
+  directory. Or start fresh with the same `/rename` + `/boss-<role> <id>` lines from the terminal block.
+
 ## Running unattended
 
-For an overnight or remote run, answer the team proposal with `approve team, unattended`. The boss
-then prints the terminal lines with `--permission-prompts none`, so a call that would have waited on
-a permission prompt comes back as a refusal the role reports as BLOCKED and the boss routes around.
-Everything else is already unattended by default: milestones chain, GO / NO-GO is recorded as a
-recommendation, deferrals wait for you under *Remaining*. Read the page in the morning.
+Overnight, or driving it from a phone over a remote connection, you want zero prompts.
+
+1. Answer the team proposal with `approve team, unattended`.
+2. The terminal block the boss prints then carries `--permission-prompts none` on every `claude`
+   line. Open the terminals with those lines.
+3. Say `team up` and leave.
+
+What that changes: a call that would have sat on a permission prompt comes back as a refusal; the
+role reports it as `BLOCKED` with the reason, and the boss routes around it (re-plans, re-briefs, or
+defers). Everything else is already unattended by default:
+
+| Event | What happens without you |
+|---|---|
+| Milestone finishes | Next milestone starts; the page shows `milestone M3/11` |
+| GO / NO-GO point | Recorded as `recommendation: GO — <why>` in the log; run continues |
+| Minor defect | Fixed if cheap, else deferred by the boss and listed under *Remaining* |
+| Major / blocker defect | Fixed through the normal loop; a true blocker is the one thing that stops the run, with a banner |
+| Session context fills | Compacts itself and resumes |
+| Map exhausted | Outcome, summary and *Remaining* on the page; sessions idle |
+
+In the morning, read the page top to bottom: the green or red banner, the summary, then *Remaining*
+for the deferrals that are yours to accept or send back.
 
 ## Layout
 
