@@ -121,7 +121,8 @@ Times default to now in the run's tz; `TEAM … since HH:MM` and `LOG HH:MM` are
 
 Defect states and who may set them: `open` (boss, from a tester report) → `fixing` (boss, when dev
 accepts) → `fix-pushed <sha>` (boss, after dev replies) → `verified` (boss, after tester re-test) |
-`deferred` (boss, ONLY after owner sign-off) | `no-bug` (boss, with the reason in the note).
+`deferred` (boss: a `minor` on its own judgement, listed under `REMAINING` for the owner's review; a
+`major`/`blocker` only with the owner's word) | `no-bug` (boss, with the reason in the note).
 
 ## 5. state.json (produced by `boss-state`, consumed by `boss-render`)
 
