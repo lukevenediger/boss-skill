@@ -20,7 +20,10 @@ import _boss  # noqa: E402
 # `[A-Z]\d+\.\d+` so a message can reference V1.2 the way a feed line can.
 RE_REF = re.compile(r"^(RUN|OWNER|[A-Z]\d+\.\d+|D\d+|M\d+)$")
 RE_MSG = re.compile(r"^M\d+$")
-SUBJECT_MAX = 200
+SUBJECT_MAX = 120     # hard limit: exit 2
+SUBJECT_SOFT = 100    # over this: warn, still send
+TLDR_AFTER = 8        # bodies longer than this many non-blank lines should open with `tl;dr:`
+RE_TLDR = re.compile(r"^\s*(\*\*)?tl;?dr\b", re.I | re.M)
 
 
 def read_body(a) -> str:
@@ -70,9 +73,16 @@ def main(argv) -> int:
     if "\n" in subject or "\r" in subject:
         _boss.die("subject must be a single line")
     if len(subject) > SUBJECT_MAX:
-        _boss.die(f"subject is {len(subject)} chars; max {SUBJECT_MAX}")
+        _boss.die(f"subject is {len(subject)} chars; max {SUBJECT_MAX} — headline in the subject, details in the body")
 
     body = read_body(a).rstrip("\n")
+    # Warnings only: the message still goes out, so a run never stalls on style.
+    if len(subject) > SUBJECT_SOFT:
+        print(f"boss-say: warning: subject is {len(subject)} chars; aim for <= {SUBJECT_SOFT} "
+              "(a plain-English headline; numbers go in the body)", file=sys.stderr)
+    if sum(1 for l in body.splitlines() if l.strip()) > TLDR_AFTER and not RE_TLDR.search(body):
+        print(f"boss-say: warning: body is over {TLDR_AFTER} lines with no `tl;dr:` line; "
+              "open with one sentence on what it means / what happens next", file=sys.stderr)
     conv = os.path.join(rdir, "conversation.jsonl")
 
     # Exclusive lock on the conversation file itself: read max id, append, release.

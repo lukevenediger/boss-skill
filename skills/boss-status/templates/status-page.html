@@ -6,7 +6,7 @@
 <title>boss run</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-  /* Layout: one 960px column of panels; hero (pet + progress) first, then outcome, team, phases, tests, defects, log. */
+  /* Layout: one 960px column of panels; hero (pet + progress) first, then outcome, team, milestones, phases, tests, defects, log. */
   :root {
     --bg:#F2F3EF; --surface:#FFFFFF; --ink:#1B1F1A; --muted:#667064; --line:#D9DED6; --line-soft:#E8ECE6;
     --ok:#2F7D4F; --ok-soft:#DCEFE2; --warn:#C97B12; --warn-soft:#FBEBD2; --bad:#B9402F; --bad-soft:#F7DDD8;
@@ -130,7 +130,35 @@
   @media (max-width:420px) { .milestones { grid-template-columns:repeat(2, minmax(0,1fr)) } }
   .ms { position:relative; padding:0 8px 0 0; font-size:13px; line-height:1.35; min-width:0; overflow-wrap:anywhere }
   .ms .rail { height:4px; background:var(--line); border-radius:2px; margin-bottom:10px; position:relative }
-  .ms.done .rail { background:var(--ok) } .ms.active .rail { background:var(--warn) } .ms.bad .rail { background:var(--bad) }
+  .ms .rail > i { display:block; height:100%; border-radius:2px; background:var(--ok) }
+  .ms.active .rail > i { background:var(--warn) } .ms.bad .rail > i { background:var(--bad) } .ms.bad .rail { background:var(--bad-soft) }
+  .ms .cnt { display:block; margin-top:4px; color:var(--muted); font:500 11px/1 var(--font-mono); font-variant-numeric:tabular-nums }
+  .ms.grp { border-left:2px solid var(--line); padding-left:8px }
+  .ms.grp:first-child { border-left:none; padding-left:0 }
+
+  .mlist { display:grid; gap:10px }
+  .mcard { border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:grid; gap:6px; min-width:0 }
+  .mcard.st-active { border-color:var(--warn); background:var(--warn-soft) }
+  .mcard.st-bad { border-color:var(--bad); background:var(--bad-soft) }
+  .mcard .mh { display:flex; align-items:center; gap:10px; min-width:0 }
+  .mcard .mid { font:600 12px/1 var(--font-mono); letter-spacing:.04em; flex:none }
+  .mcard .mt { font-weight:600; min-width:0; overflow-wrap:anywhere }
+  .mcard .mh .tag { margin-left:auto; font:600 10px/1 var(--font-mono); letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; background:var(--line-soft); color:var(--muted); flex:none }
+  .mcard.st-done .tag { background:var(--ok-soft); color:var(--ok) }
+  .mcard.st-active .tag { background:var(--surface); color:var(--warn) }
+  .mcard.st-bad .tag { background:var(--surface); color:var(--bad) }
+  .mcard .mbar { height:6px; background:var(--line-soft); border-radius:3px; overflow:hidden }
+  .mcard .mbar > i { display:block; height:100%; background:var(--ok) }
+  .mcard.st-active .mbar > i { background:var(--warn) } .mcard.st-bad .mbar > i { background:var(--bad) }
+  .mcard .mstats { display:flex; flex-wrap:wrap; gap:4px 14px; font:500 12px/1.4 var(--font-mono); color:var(--muted); font-variant-numeric:tabular-nums }
+  .mcard .mstats b { color:var(--ink); font-weight:600 }
+  .mcard .acc { color:var(--muted); font-size:12.5px; line-height:1.5; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; cursor:pointer }
+  .mcard .acc.full { display:block }
+  .mcard.compact { padding:8px 14px; gap:0 }
+  .mcard.compact .mt { font-weight:500; color:var(--muted) }
+  summary .mtag { font:600 10px/1 var(--font-mono); letter-spacing:.04em; padding:4px 6px; border-radius:4px; border:1px solid var(--line); color:var(--muted); flex:none }
+  summary .wt { color:var(--muted); font:500 11px/1 var(--font-mono); flex:none }
+  @media (max-width:560px) { summary .wt { display:none } }
   .ms .num { font:600 11px/1 var(--font-mono); color:var(--muted); letter-spacing:.06em; display:block; margin-bottom:3px }
   .ms.done .num { color:var(--ok) } .ms.active .num { color:var(--warn) } .ms.bad .num { color:var(--bad) }
   .ms.active .rail::after { content:""; position:absolute; right:0; top:-3px; width:10px; height:10px; border-radius:50%; background:var(--warn); animation:pulse 1.2s infinite }
@@ -360,11 +388,49 @@
       : passed === s.length ? 'done' : passed ? 'running' : 'todo';
   };
   const railClass = { done:'done', failed:'bad', blocked:'bad', running:'active', todo:'todo' };
+  const passCount = ts => ts.filter(t => str(t.state) === 'pass').length;
+  const split = ts => { const w = ts.filter(t => /^W/.test(str(t.id))), c = ts.filter(t => !/^W/.test(str(t.id))); return { w, c }; };
+
+  // 5a. Milestones: what each milestone holds and how far it is (only when the plan has a map)
+  const milestones = arr(state.milestones);
+  if (milestones.length) {
+    const msSec = H(app, 'section', 'panel'); msSec.id = 'milestones'; H(msSec, 'h2', null, 'Milestones');
+    const list = H(msSec, 'div', 'mlist');
+    milestones.forEach(m => {
+      const mp = phases.filter(p => str(p.milestone) === str(m.id)), ts = mp.flatMap(p => arr(p.tests));
+      const states = ts.map(t => str(t.state || 'pending')), done = passCount(ts);
+      const derived = !ts.length ? 'todo' : done === ts.length ? 'done'
+        : (states.includes('fail') || states.includes('blocked')) ? 'bad' : states.some(x => x !== 'pending') ? 'active' : 'todo';
+      const ms = str(m.state) || derived, cls = ms === 'done' ? 'done' : ms === 'active' ? (derived === 'bad' ? 'bad' : 'active') : derived === 'bad' ? 'bad' : ms;
+      const card = H(list, 'div', 'mcard st-' + cls + (ts.length ? '' : ' compact')); card.dataset.milestone = str(m.id);
+      const mh = H(card, 'div', 'mh'); H(mh, 'span', 'mid', str(m.id)); H(mh, 'span', 'mt', str(m.title));
+      H(mh, 'span', 'tag', ms === 'todo' && !ts.length ? 'not in this run' : ({ bad:'attention', active:'in progress' }[cls] || ms));
+      if (!ts.length) return;
+      const bar = H(card, 'div', 'mbar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(ts.length)); bar.setAttribute('aria-valuenow', String(done));
+      H(bar, 'i').style.width = (100 * done / ts.length).toFixed(1) + '%';
+      const { w, c } = split(ts), stats = H(card, 'div', 'mstats');
+      const stat = (label, a, b) => { const sp = H(stats, 'span'); sp.append(label + ' '); H(sp, 'b', null, a + '/' + b); };
+      stat('done', done, ts.length); if (w.length) stat('work', passCount(w), w.length); if (c.length) stat('checks', passCount(c), c.length);
+      stat('phases', mp.filter(p => phaseState(p) === 'done').length, mp.length);
+      const now = mp.find(p => phaseState(p) !== 'done');
+      if (now && cls !== 'done') H(stats, 'span', null, 'now: ' + str(now.id) + ' ' + str(now.title));
+      if (m.acceptance) { const acc = H(card, 'div', 'acc', 'acceptance: ' + str(m.acceptance)); acc.title = 'click to expand'; acc.addEventListener('click', () => acc.classList.toggle('full')); }
+    });
+  }
+
+  // 5b. Phases rail
   const railSec = H(app, 'section', 'panel'); H(railSec, 'h2', null, 'Phases');
   if (!phases.length) H(railSec, 'p', 'empty', 'plan not imported yet');
   else {
     const rail = H(railSec, 'div', 'milestones'); rail.style.setProperty('--n', String(Math.max(1, phases.length)));
-    phases.forEach(p => { const c = H(rail, 'div', 'ms ' + railClass[phaseState(p)]); H(c, 'div', 'rail'); H(c, 'span', 'num', str(p.id)); c.append(str(p.title)); });
+    let prevMs;
+    phases.forEach((p, i) => {
+      const ts = arr(p.tests), done = passCount(ts), pm = p.milestone == null ? null : str(p.milestone);
+      const c = H(rail, 'div', 'ms ' + railClass[phaseState(p)] + (milestones.length && i && pm !== prevMs ? ' grp' : '')); prevMs = pm;
+      H(H(c, 'div', 'rail'), 'i').style.width = (ts.length ? 100 * done / ts.length : 0).toFixed(1) + '%';
+      H(c, 'span', 'num', str(p.id) + (pm ? ' · ' + pm : '')); c.append(str(p.title));
+      H(c, 'span', 'cnt', done + '/' + ts.length);
+    });
   }
 
   // 6. Tests
@@ -374,7 +440,11 @@
     const ts = arr(p.tests), ps = phaseState(p), passed = ts.filter(t => str(t.state) === 'pass').length;
     const d = H(testSec, 'details'); d.open = ps !== 'done'; d.dataset.phase = str(p.id);
     const s = H(d, 'summary', 'st-' + ps); H(s, 'span', 'chev');
-    H(s, 'span', 'ttl', str(p.id) + (p.title ? ' — ' + str(p.title) : '')); H(s, 'span', 'tag', ps); H(s, 'span', 'pct', passed + '/' + ts.length);
+    if (p.milestone) H(s, 'span', 'mtag', str(p.milestone));
+    H(s, 'span', 'ttl', str(p.id) + (p.title ? ' — ' + str(p.title) : '')); H(s, 'span', 'tag', ps);
+    const { w, c } = split(ts);
+    if (w.length && c.length) H(s, 'span', 'wt', 'W ' + passCount(w) + '/' + w.length + ' · T ' + passCount(c) + '/' + c.length);
+    H(s, 'span', 'pct', passed + '/' + ts.length);
     const list = H(d, 'ul', 'tasks');
     if (!ts.length) H(list, 'li', 'empty', 'no tests in this phase');
     ts.forEach((t, i) => {

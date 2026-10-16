@@ -85,6 +85,13 @@
   .mh .re { background:var(--line-soft); padding:3px 7px; border-radius:4px; font-size:11px }
   .mh time { margin-left:auto; font-variant-numeric:tabular-nums }
   .subject { font-weight:700; font-size:15px; margin:8px 0 6px; overflow-wrap:anywhere }
+  details.more { margin-top:8px }
+  details.more > summary { cursor:pointer; list-style:none; display:inline-flex; gap:8px; align-items:center; font:500 12px/1.4 var(--font-mono); color:var(--info) }
+  details.more > summary::-webkit-details-marker { display:none }
+  details.more > summary::before { content:""; width:6px; height:6px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg); transition:transform .15s }
+  details.more[open] > summary::before { transform:rotate(45deg) }
+  details.more > .md { margin-top:8px }
+  @media (prefers-reduced-motion: reduce) { details.more > summary::before { transition:none } }
   .replies { display:grid; gap:10px; margin-top:12px; padding-left:14px; border-left:3px solid var(--line-soft) }
   .replies .msg { padding:12px 14px 13px; background:var(--bg) }
   .empty { color:var(--muted); font-style:italic; font-size:13.5px; padding:24px 0; text-align:center }
@@ -180,6 +187,7 @@
   const isFence = l => /^```/.test(l), isHead = l => /^#{1,6}\s+/.test(l), isQuote = l => /^>\s?/.test(l);
   const isUl = l => /^\s*[-*+]\s+/.test(l), isOl = l => /^\s*\d+[.)]\s+/.test(l), isRow = l => /^\s*\|/.test(l);
   const isBlockStart = l => isFence(l) || isHead(l) || isQuote(l) || isUl(l) || isOl(l) || isRow(l) || !l.trim();
+  const isCmd = l => /^\s*cmd:\s/.test(l), isKv = l => /^\s*[\w][\w .\/()=-]{0,30}:\s/.test(l), isCont = l => /^\s{2,}\S/.test(l);
   const cells = l => { const p = l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim()); return p; };
   function md(target, text, opts) {
     const lines = str(text).replace(/\r\n?/g, '\n').split('\n'); let i = 0;
@@ -210,6 +218,14 @@
           inline(li, item);
         }
         continue;
+      }
+      // Unfenced evidence: a `cmd:` line followed by more `key: value` / indented lines → collapsed evidence block.
+      if (isCmd(l)) {
+        let j = i + 1; while (j < lines.length && (isKv(lines[j]) || isCont(lines[j]))) j++;
+        if (j - i >= 3) {
+          const d = H(target, 'details', 'evidence'); d.open = !!opts.expand; H(d, 'summary', null, 'evidence');
+          H(H(d, 'pre'), 'code', null, lines.slice(i, j).join('\n')); i = j; continue;
+        }
       }
       const buf = [l]; i++;
       while (i < lines.length && !isBlockStart(lines[i])) buf.push(lines[i++]);
@@ -259,9 +275,12 @@
   const rail = document.getElementById('rail'), msgs = document.getElementById('msgs');
   // Newest first by default so the latest messages are at the top; toggles persist per viewer.
   const PREF = 'boss-conversation-view';
-  const view = { thread: null, roles: new Set(), newest: true, expand: false };
-  try { const saved = JSON.parse(localStorage.getItem(PREF) || '{}'); for (const k of ['newest', 'expand']) if (typeof saved[k] === 'boolean') view[k] = saved[k]; } catch (e) {}
-  const savePrefs = () => { try { localStorage.setItem(PREF, JSON.stringify({ newest: view.newest, expand: view.expand })); } catch (e) {} };
+  // Status traffic (feed lines and "Published v<n>" replies) is hidden by default: it repeats what the
+  // other messages say. Picking the status chip in Filter shows it regardless.
+  const view = { thread: null, roles: new Set(), newest: true, expand: false, status: false };
+  const PREF_KEYS = ['newest', 'expand', 'status'];
+  try { const saved = JSON.parse(localStorage.getItem(PREF) || '{}'); for (const k of PREF_KEYS) if (typeof saved[k] === 'boolean') view[k] = saved[k]; } catch (e) {}
+  const savePrefs = () => { try { localStorage.setItem(PREF, JSON.stringify(Object.fromEntries(PREF_KEYS.map(k => [k, view[k]])))); } catch (e) {} };
   const threadCounts = new Map();
   recs.forEach(r => { const k = str(r.re || 'RUN'); threadCounts.set(k, (threadCounts.get(k) || 0) + 1); });
   const threadNames = [...threadCounts.keys()].sort(cmp);
@@ -283,7 +302,7 @@
   const toggles = H(fPanel, 'div', 'toggles'); toggles.style.marginTop = '12px';
   const toggle = (label, key) => { const b = H(toggles, 'button', 'toggle', label); b.type = 'button'; b.id = 'toggle-' + key; b.setAttribute('aria-pressed', 'false');
     b.addEventListener('click', () => { view[key] = !view[key]; savePrefs(); render(); }); return b; };
-  toggle('newest first', 'newest'); toggle('expand evidence', 'expand');
+  toggle('newest first', 'newest'); toggle('expand all', 'expand'); toggle('show status traffic', 'status');
 
   // ---- messages ----
   function card(r, parentVisible) {
@@ -297,14 +316,37 @@
     if (needs) H(mh, 'span', 'badge needs', 'needs owner');
     const t = H(mh, 'time', null, hhmm(r.ts)); t.dateTime = str(r.ts); t.title = str(r.ts);
     if (subject) H(a, 'div', 'subject', subject);
-    md(H(a, 'div', 'md'), r.body, { expand: view.expand });
+    renderBody(a, str(r.body));
     return a;
+  }
+  // Long bodies show a gist (the `tl;dr:` line, else the first paragraph) and fold the rest away.
+  const GIST_LINES = 6;
+  function renderBody(a, text) {
+    const lines = text.replace(/\r\n?/g, '\n').split('\n');
+    if (view.expand || lines.filter(l => l.trim()).length <= GIST_LINES) { md(H(a, 'div', 'md'), text, { expand: view.expand }); return; }
+    let gist = [], rest = lines;
+    const tl = lines.findIndex(l => /^\s*(\*\*)?tl;?dr:?(\*\*)?:?\s/i.test(l));
+    if (tl >= 0) { gist = [lines[tl]]; rest = lines.filter((_, k) => k !== tl); }
+    else {
+      const start = lines.findIndex(l => l.trim());
+      if (start >= 0 && !isFence(lines[start]) && !isCmd(lines[start]) && !isRow(lines[start])) {
+        let end = start; while (end < lines.length && lines[end].trim() && !isFence(lines[end]) && !isCmd(lines[end]) && !(end > start && (isHead(lines[end]) || isUl(lines[end]) || isOl(lines[end]))) && end - start < 4) end++;
+        gist = lines.slice(start, end); rest = lines.slice(end);
+      }
+    }
+    if (gist.length) md(H(a, 'div', 'md gist'), gist.join('\n'), { expand: false });
+    const n = rest.filter(l => l.trim()).length;
+    if (!n) return;
+    const d = H(a, 'details', 'more'); H(d, 'summary', null, 'show full message \u00b7 ' + n + ' lines');
+    md(H(d, 'div', 'md'), rest.join('\n'), { expand: false });
   }
   function render() {
     tList.querySelectorAll('button').forEach(b => b.classList.toggle('on', (view.thread == null ? '' : view.thread) === b.dataset.thread));
     chips.querySelectorAll('.rolechip').forEach(b => b.classList.toggle('off', view.roles.size > 0 && !view.roles.has(b.textContent)));
-    ['newest', 'expand'].forEach(k => { const b = document.getElementById('toggle-' + k); b.classList.toggle('on', view[k]); b.setAttribute('aria-pressed', String(view[k])); });
-    const visible = recs.filter(r => (view.thread == null || str(r.re || 'RUN') === view.thread) && (!view.roles.size || view.roles.has(str(r.from)) || view.roles.has(str(r.to))));
+    PREF_KEYS.forEach(k => { const b = document.getElementById('toggle-' + k); b.classList.toggle('on', view[k]); b.setAttribute('aria-pressed', String(view[k])); });
+    const isStatus = r => str(r.from) === 'status' || str(r.to) === 'status';
+    const visible = recs.filter(r => (view.thread == null || str(r.re || 'RUN') === view.thread) && (!view.roles.size || view.roles.has(str(r.from)) || view.roles.has(str(r.to)))
+      && (view.status || view.roles.has('status') || !isStatus(r)));
     const byId = new Map(visible.map(r => [str(r.id), r]));
     const rootOf = r => { let p = r.reply_to ? byId.get(str(r.reply_to)) : null, guard = 0; while (p && p.reply_to && byId.has(str(p.reply_to)) && guard++ < 64) p = byId.get(str(p.reply_to)); return p && p !== r ? p : null; };
     const kids = new Map(), top = [];

@@ -15,6 +15,7 @@
     "ci": "green",
     "milestone": null
   },
+  "milestones": [],
   "phases": [
     {
       "id": "P0",
@@ -36,7 +37,8 @@
           "evidence": null,
           "updated": "10:00"
         }
-      ]
+      ],
+      "milestone": null
     },
     {
       "id": "P1",
@@ -66,7 +68,8 @@
           "evidence": null,
           "updated": null
         }
-      ]
+      ],
+      "milestone": null
     },
     {
       "id": "P2",
@@ -80,7 +83,8 @@
           "evidence": "waiting on CI",
           "updated": "10:00"
         }
-      ]
+      ],
+      "milestone": null
     },
     {
       "id": "PX",
@@ -141,7 +145,7 @@
     {
       "role": "tester",
       "session": "w1-tester",
-      "model": "sonnet",
+      "model": "opus",
       "state": "active",
       "activity": "running T1.x",
       "since": "09:45"
@@ -179,15 +183,15 @@
     "verdict": "NO-GO",
     "text": "D1 not yet verified"
   },
-  "mood": "fixing",
-  "mood_override": null,
-  "ambiguous": [
-    "TEST T1.2 BOGUS"
-  ],
   "done": null,
   "summary": {
     "did": [],
     "challenges": [],
     "followups": []
-  }
+  },
+  "mood": "fixing",
+  "mood_override": null,
+  "ambiguous": [
+    "TEST T1.2 BOGUS"
+  ]
 }

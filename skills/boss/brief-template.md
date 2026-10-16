@@ -20,7 +20,9 @@ T2.1 <title>
 T2.2 …
 
 ## Report
-One message per test: `[M.. tester→boss re:T2.1] T2.1 PASS — <one line>` + evidence block in the body.
+One message per test: `[M.. tester→boss re:T2.1] T2.1 PASS — <plain-English headline, ≤ 100 chars>`;
+body opens with `tl;dr:` when it runs past 8 lines; every command and its output inside a fenced
+`evidence` block, never loose in the prose.
 Defects as `D<n>` in their own message (`re:D<n>`) with severity, repro, expected/actual, evidence.
 Long output → evidence/<Tid>-<slug>.txt, message carries the path plus the load-bearing lines.
 

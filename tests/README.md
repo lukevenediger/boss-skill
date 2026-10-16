@@ -1,6 +1,6 @@
 # tests
 
-- `bash tests/scripts.test.sh` — golden tests for the four protocol scripts (temp `BOSS_HOME` per case).
+- `bash tests/scripts.test.sh` — golden tests for the protocol scripts (plan + milestone import, feed, boss-say limits, run init) (temp `BOSS_HOME` per case).
 - `scenarios/baseline-*.md` — RED: what fresh agents did WITHOUT each charter (verbatim rationalisations).
 - `scenarios/green-*.md` — GREEN: the same scenarios WITH the charter; new rationalisations feed the
   charters' "Common mistakes" tables.

@@ -43,10 +43,19 @@ RE_OUTCOME = re.compile(rf"^OUTCOME\s+(GO|NO-GO)\s+{DASH}\s*(.*)$")
 RE_MOOD = re.compile(r"^MOOD\s+(idle|testing|bug-found|fixing|all-green|auto)$")
 RE_DONE = re.compile(r"^DONE\s+(.+)$")
 RE_SUMMARY = re.compile(r"^SUMMARY\s+(did|challenge|followup|clear)(?:\s+(.+))?$")
+RE_MILESTONE = re.compile(rf"^MILESTONE\s+(M\d+[a-z]?)\s+(done|active|todo|auto)(?:\s+{DASH}\s*(.*))?$")
 SUMMARY_KEYS = {"did": "did", "challenge": "challenges", "followup": "followups"}
 
 RE_PHASE = re.compile(r"^###\s+(?:Phase\s+(\d+)|P(\d+))\s+(?:—|--|-)\s+(.+?)\s*$")
 RE_PLAN_TEST = re.compile(rf"^-\s+({TID})\s+(\S+):\s+(.+?)\s*$")
+# Milestone map: `## Milestones …` then `- [ ] **M9a Title** — acceptance: … — ~1 day` (bold optional, `[x]` = done).
+RE_MS_SECTION = re.compile(r"^##\s+Milestones\b", re.I)
+RE_H2 = re.compile(r"^##\s")
+RE_MS_LINE = re.compile(r"^[-*]\s+\[( |x|X)\]\s+(.+?)\s*$")
+RE_MS_ID = re.compile(r"^(M\d+[a-z]?(?:[–-]M\d+[a-z]?|\+)?)(?=[\s:.]|$)[:.]?\s*(.*)$")
+RE_THIS_RUN = re.compile(r"^This run:\s*(M\d+[a-z]?)\b", re.I)
+RE_MS_WORD = re.compile(r"\b(M\d+[a-z]?)\b")
+RE_WRAP = re.compile(r"^wrap\b", re.I)
 
 UNPLANNED = {"id": "PX", "title": "Unplanned"}
 
@@ -63,6 +72,7 @@ def new_state(run: dict, title: str | None) -> dict:
         "run": {"id": run["id"], "title": title or run.get("title") or run["id"],
                 "started": run.get("started"), "tz": run.get("tz")},
         "header": {"branch": run.get("branch"), "pr": None, "image": None, "stack": None, "head": None, "ci": None, "milestone": None},
+        "milestones": [],
         "phases": [],
         "defects": [],
         "team": [{"role": r["role"], "session": r.get("session"), "model": r.get("model"),
@@ -251,6 +261,16 @@ def apply_line(st: dict, line: str, now: str) -> bool:
         st["done"] = None if text == "-" else {"headline": text, "at": now}
         return True
 
+    if (m := RE_MILESTONE.match(line)):
+        mid, mstate, _note = m.groups()
+        ms = st.setdefault("milestones", [])
+        cur = next((x for x in ms if x["id"] == mid), None)
+        if cur is None:
+            cur = {"id": mid, "title": "(unplanned)", "acceptance": None, "state": None}
+            ms.append(cur)
+        cur["state"] = None if mstate == "auto" else mstate
+        return True
+
     if (m := RE_SUMMARY.match(line)):
         kind, text = m.group(1), (m.group(2) or "").strip()
         summary = st.setdefault("summary", {"did": [], "challenges": [], "followups": []})
@@ -266,6 +286,61 @@ def apply_line(st: dict, line: str, now: str) -> bool:
         return True
 
     return False
+
+
+# ---------------------------------------------------------------- milestones
+
+def parse_milestones(lines: list[str], existing: dict) -> tuple[list[dict], str | None]:
+    """Read the `## Milestones` list. A ticked box sets state done; otherwise a state set by a
+    MILESTONE feed line survives re-import; null means the page derives it from the phases.
+    Also returns this run's milestone (`This run: M4`, or a line marked `(this run)`), if any."""
+    out: list[dict] = []
+    this_run = None
+    inside = False
+    for raw in lines:
+        line = raw.rstrip()
+        if (t := RE_THIS_RUN.match(line)) and this_run is None:
+            this_run = t.group(1)
+        if RE_MS_SECTION.match(line):
+            inside = True
+            continue
+        if inside and RE_H2.match(line):
+            inside = False
+        if not inside or not (m := RE_MS_LINE.match(line)):
+            continue
+        box, rest = m.groups()
+        tail = ""
+        if rest.startswith("**") and "**" in rest[2:]:
+            head, tail = rest[2:].split("**", 1)
+        else:
+            head, _, tail = rest.partition(" — ")
+        if not (im := RE_MS_ID.match(head.strip())):
+            continue
+        mid, title = im.groups()
+        tail = re.sub(rf"^\s*{DASH}\s*", "", tail.strip())
+        tail = re.sub(r"^acceptance:\s*", "", tail, flags=re.I)
+        if this_run is None and re.search(r"\(this run\)", line, re.I):
+            this_run = mid
+        old = existing.get(mid) or {}
+        out.append({"id": mid, "title": title.strip().rstrip(":") or mid, "acceptance": tail or None,
+                    "state": "done" if box in "xX" else old.get("state")})
+    return out, this_run
+
+
+def assign_milestones(phases: list[dict], ms_ids: set[str], this_run: str | None) -> None:
+    """A phase belongs to the first known milestone id in its title, else to the previous
+    phase's milestone, else to this run's milestone. Wrap (with no id in its title) and
+    Unplanned are run-wide (None)."""
+    current = this_run if this_run in ms_ids else None
+    for ph in phases:
+        hit = next((w for w in RE_MS_WORD.findall(ph["title"]) if w in ms_ids), None)
+        if hit:
+            current = hit
+            ph["milestone"] = hit
+        elif ph["id"] == UNPLANNED["id"] or RE_WRAP.match(ph["title"]):
+            ph["milestone"] = None
+        else:
+            ph["milestone"] = current
 
 
 # ---------------------------------------------------------------- commands
@@ -288,6 +363,8 @@ def cmd_plan_import(a) -> int:
         _boss.die(f"cannot read plan: {e}", 1)
 
     existing = {t["id"]: t for ph in st["phases"] for t in ph["tests"]}
+    milestones, this_run = parse_milestones(lines, {x["id"]: x for x in st.get("milestones", [])})
+    ms_ids = {x["id"] for x in milestones}
     phases: list[dict] = []
     current: dict | None = None
     seen: set[str] = set()
@@ -322,6 +399,8 @@ def cmd_plan_import(a) -> int:
             phases.append(ph)
         ph["tests"].extend(leftovers)
 
+    assign_milestones(phases, ms_ids, this_run)
+    st["milestones"] = milestones
     st["phases"] = phases
     save_state(rdir, st)
 
@@ -329,7 +408,8 @@ def cmd_plan_import(a) -> int:
     if os.path.realpath(a.plan) != os.path.realpath(dest):
         shutil.copyfile(a.plan, dest)
     ntests = sum(len(p["tests"]) for p in phases)
-    print(f"imported {len(phases)} phases, {ntests} tests -> state v{st['version']}")
+    ms = f", {len(milestones)} milestones" if milestones else ""
+    print(f"imported {len(phases)} phases, {ntests} tests{ms} -> state v{st['version']}")
     return 0
 
 

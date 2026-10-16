@@ -61,9 +61,16 @@ This run: M1.
 `W<n>.<m>` lines are work items (owner dev); `T<n>.<m>` lines verify them (owner tester). Every W
 line names the spec section and the test that proves it. Later runs tick the map and continue.
 
+**Put the milestone id in every phase heading** (`### Phase 3 — M9b corpus dimension`,
+`### Phase 0 — Preflight (M9a)`): that is how the status page groups phases under milestones and
+shows how far each milestone is. A heading without an id inherits the previous phase's milestone
+(or `This run: M<id>`). When a milestone is finished, tick it in the map AND send
+`MILESTONE M<id> done` to status.
+
 ## Line shapes the importer reads
 
 - Phase heading: `### Phase <n> — <title>` or `### P<n> — <title>` (em dash or hyphen both accepted).
+- Milestone line (under `## Milestones`): `- [ ] M<id> <title> — acceptance: …` or `- [x] **M<id> <title>** — …`.
 - Item line: `- <Id> <owner>: <title>` where `<Id>` matches `[A-Z]\d+\.\d+` (`P0.1`, `T2.3`, `W1.2`)
   and `<owner>` is a role name. `W` = work item (dev), `T` = test (tester), `P` = preflight. One test per line. Put the expected outcome IN the title so the page
   reads as a checklist.

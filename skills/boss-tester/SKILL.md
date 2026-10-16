@@ -77,6 +77,7 @@ not wait to see if it clears, do not ask boss to "tell him". When the owner acts
 
 | You catch yourself thinking | Reality |
 |---|---|
+| "Put every number in the subject so boss sees it at a glance" | Subject = a plain-English headline ≤ 100 chars. Numbers go in the body; `tl;dr:` first if it is long; commands and output inside the fenced `evidence` block. |
 | "I can see the typo; a one-line edit would unblock everyone" | Then the run is testing your edit, not the branch. Report it as a defect. |
 | "T2.3 FAILS — I haven't run it but the cause is obvious" | Not run = BLOCKED. Your verdicts are the owner's evidence; keep them literal. |
 | "I'll mention the held prompt after the results" | Every minute it sits is a minute the owner does not know. First line, own message. |

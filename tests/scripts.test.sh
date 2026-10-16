@@ -53,7 +53,7 @@ case_run_init_creates_tree() {
   assert_eq "$(jq -r .tools_dir "$rj")" "$SCRIPTS" "tools_dir"
   assert_eq "$(jq -c '[.roles[] | .role]' "$rj")" '["boss","dev","tester","status"]'
   assert_eq "$(jq -c '[.roles[] | .session]' "$rj")" '["w1-boss","w1-dev","w1-tester","w1-status"]'
-  assert_eq "$(jq -c '[.roles[] | .model]' "$rj")" '["fable","opus","sonnet","opus"]'
+  assert_eq "$(jq -c '[.roles[] | .model]' "$rj")" '["fable","opus","opus","opus"]'
   assert_eq "$(jq -c .pages "$rj")" '{}'
   # show prints run.json
   assert_eq "$(bash "$SCRIPTS/boss-run" show | jq -r .id)" "w1"
@@ -180,7 +180,7 @@ case_state_init() {
   assert_eq "$(jq -c '[.phases,.defects,.owner_calls,.log,.ambiguous]' "$s")" '[[],[],[],[],[]]'
   assert_eq "$(jq -r .mood "$s")" "idle"
   assert_eq "$(jq -r .mood_override "$s")" "null"
-  assert_eq "$(jq -c '[.team[] | [.role,.session,.model,.state]]' "$s")" '[["boss","w1-boss","fable","dormant"],["dev","w1-dev","opus","dormant"],["tester","w1-tester","sonnet","dormant"],["status","w1-status","opus","dormant"]]'
+  assert_eq "$(jq -c '[.team[] | [.role,.session,.model,.state]]' "$s")" '[["boss","w1-boss","fable","dormant"],["dev","w1-dev","opus","dormant"],["tester","w1-tester","opus","dormant"],["status","w1-status","opus","dormant"]]'
   state init --title "Renamed" >/dev/null
   assert_eq "$(jq -r .run.title "$s")" "Renamed"
 }
@@ -498,6 +498,84 @@ EOF
   assert_contains "$BOSS_HOME/runs/w1/pages/status.html" '<title>W1 ingest</title>'
 }
 
+case_plan_import_milestones() {
+  fresh_home; init_run; state init >/dev/null
+  local plan="$BOSS_HOME/plan.md"
+  cat > "$plan" <<'PLAN'
+# w1 — two milestones
+
+## Milestones
+- [x] M1–M3 Earlier work — se-m1..m3
+- [ ] **M4a Search core** — acceptance: §7 queries return ranked hits — ~1 day
+- [ ] M4b Search page: filters and CSV — acceptance: §8 CSV export — ~1 day
+- [ ] M5+ Later phases — own specs
+This run: M4a.
+
+## Phases
+### Phase 0 — Preflight
+- P0.1 dev: gate green
+### Phase 1 — Index engine
+- W1.1 dev: FTS index
+- T1.1 tester: query returns hits
+### Phase 2 — Search page (M4b)
+- W2.1 dev: page
+### Phase 3 — Deploy
+- T3.1 tester: live
+### Phase 4 — Wrap
+- P4.1 boss: OUTCOME
+PLAN
+  out="$(state plan-import "$plan")"
+  assert_eq "$out" "imported 5 phases, 6 tests, 4 milestones -> state v1"
+  assert_eq "$(state_json | jq -c '[.milestones[] | [.id,.title,.state]]')" '[["M1–M3","Earlier work","done"],["M4a","Search core",null],["M4b","Search page: filters and CSV",null],["M5+","Later phases",null]]'
+  assert_eq "$(state_json | jq -r '.milestones[1].acceptance')" "§7 queries return ranked hits — ~1 day"
+  # P0/P1 default to "This run: M4a"; P2 names M4b; P3 inherits M4b; Wrap is run-wide
+  assert_eq "$(state_json | jq -c '[.phases[] | .milestone]')" '["M4a","M4a","M4b","M4b",null]'
+  apply_lines "TEST W1.1 PASS" "MILESTONE M4a done — ticked" "MILESTONE M9 active" "MILESTONE M4b sideways" > "$BOSS_HOME/out.txt"
+  assert_contains "$BOSS_HOME/out.txt" "applied: 3"
+  assert_contains "$BOSS_HOME/out.txt" "ambiguous: MILESTONE M4b sideways"
+  assert_eq "$(state_json | jq -r '.milestones[] | select(.id=="M4a") | .state')" "done"
+  assert_eq "$(state_json | jq -r '.milestones[] | select(.id=="M9") | .title')" "(unplanned)"
+  # re-import keeps verdicts and a fed milestone state
+  state plan-import "$plan" >/dev/null
+  assert_eq "$(state_json | jq -r '.phases[1].tests[0].state')" "pass"
+  assert_eq "$(state_json | jq -r '.milestones[] | select(.id=="M4a") | .state')" "done"
+  apply_lines "MILESTONE M4a auto" >/dev/null
+  assert_eq "$(state_json | jq -r '.milestones[] | select(.id=="M4a") | .state')" "null"
+}
+
+case_plan_import_no_milestones() {
+  fresh_home; init_run; state init >/dev/null
+  state plan-import "$GOLDEN/plan.md" >/dev/null
+  assert_eq "$(state_json | jq -c '[.milestones, [.phases[] | .milestone]]')" '[[],[null,null,null]]'
+}
+
+case_say_subject_and_tldr_warnings() {
+  fresh_home; init_run
+  local long; long="$(printf 'x%.0s' $(seq 1 121))"
+  set +e; say --from boss --to dev --re RUN --subject "$long" </dev/null >/dev/null 2>&1; rc=$?; set -e
+  assert_eq "$rc" "2" "subject over 120 is refused"
+  local mid; mid="$(printf 'y%.0s' $(seq 1 110))"
+  say --from boss --to dev --re RUN --subject "$mid" </dev/null 2>"$BOSS_HOME/err" >/dev/null
+  assert_contains "$BOSS_HOME/err" "warning: subject is 110 chars"
+  printf 'l%s\n' 1 2 3 4 5 6 7 8 9 | say --from tester --to boss --re RUN --subject "T1.1 PASS" 2>"$BOSS_HOME/err" >/dev/null
+  assert_contains "$BOSS_HOME/err" "no \`tl;dr:\` line"
+  { echo "tl;dr: all good, moving to T1.2"; printf 'l%s\n' 1 2 3 4 5 6 7 8 9; } | say --from tester --to boss --re RUN --subject "T1.1 PASS" 2>"$BOSS_HOME/err" >/dev/null
+  assert_eq "$(wc -c < "$BOSS_HOME/err" | tr -d ' ')" "0" "no warning with a tl;dr"
+  assert_eq "$(wc -l < "$BOSS_HOME/runs/w1/conversation.jsonl" | tr -d ' ')" "3" "warnings still send"
+}
+
+case_run_init_status_must_be_opus() {
+  fresh_home
+  set +e
+  run init w1 --role boss=w1-boss=fable --role status=w1-status=sonnet >/dev/null 2>"$BOSS_HOME/err"; rc=$?
+  set -e
+  assert_eq "$rc" "2" "non-opus status refused"
+  assert_contains "$BOSS_HOME/err" "status must run on opus"
+  [ ! -f "$BOSS_HOME/runs/w1/run.json" ] || fail "no run created"
+  run init w1 --role boss=w1-boss=fable --role status=w1-status=sonnet --allow-status-model >/dev/null
+  assert_file "$BOSS_HOME/runs/w1/run.json"
+}
+
 # ---------------------------------------------------------------- runner
 
 cases=(
@@ -526,6 +604,10 @@ cases=(
   case_state_show
   case_render_fallback
   case_render_uses_template_dir
+  case_plan_import_milestones
+  case_plan_import_no_milestones
+  case_say_subject_and_tldr_warnings
+  case_run_init_status_must_be_opus
 )
 
 if [ $# -gt 0 ]; then cases=("$@"); fi

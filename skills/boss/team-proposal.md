@@ -12,7 +12,7 @@ The boss proposes a team for THIS piece of work before anything else happens. Th
 |--------|-----------------|--------|----------------------------------------|------------------------------------|----------------|
 | boss   | <id>-boss       | fable  | plan, briefs, review, triage, go/no-go | repo edits, git writes, the stack  | this session   |
 | dev    | <id>-dev        | opus   | checkout, fixes, gate, push            | the stack, force-push              | root-causing needed |
-| tester | <id>-tester     | sonnet | the stack, commands, evidence, defects | edits, commits                     | scripted execution |
+| tester | <id>-tester     | opus   | the stack, commands, evidence, defects | edits, commits                     | judgement on evidence |
 | status | <id>-status     | opus   | the status + conversation pages        | anything else                      | always opus    |
 
 Shared infrastructure owner: tester. Permission mode for all sessions: <this session's mode>.
@@ -30,8 +30,8 @@ Reply `approve team`, or say what to change.
 |---|---|---|
 | boss | the model this session runs (fable / opus) | never downgrade the boss |
 | dev | opus | opus when the work needs root-causing or design judgement; sonnet only when every fix is handed over as exact code |
-| tester | sonnet | haiku only when every command is pre-scripted and no judgement is needed on evidence |
-| status | **opus, always** | never any other model; never dropped from the team |
+| tester | opus | sonnet only when every command is pre-scripted and the evidence needs no judgement; never haiku |
+| status | **opus, always** | never any other model (`boss-run init` refuses one); never dropped from the team |
 | extra roles | justify each | model chosen by the judgement the role needs, stated in "Why this model" |
 
 Aliases the owner types: `--model fable | opus | sonnet | haiku`.
@@ -55,7 +55,7 @@ then print exactly this (fill in models from the approved table):
 Open these terminals, in the same permission mode as this one (<mode>):
 
 Terminal 2 (dev):     cd <repo> && claude --model opus     then  /rename <id>-dev      then  /boss-dev <id>
-Terminal 3 (tester):  cd <repo> && claude --model sonnet   then  /rename <id>-tester   then  /boss-tester <id>
+Terminal 3 (tester):  cd <repo> && claude --model opus     then  /rename <id>-tester   then  /boss-tester <id>
 Terminal 4 (status):  cd <repo> && claude --model opus     then  /rename <id>-status   then  /boss-status <id>
 
 Say "team up" here when all three prompts are idle.

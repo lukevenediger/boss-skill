@@ -1,6 +1,6 @@
 ---
 name: boss-status
-description: Use when this session is the status role in a boss run — the owner typed /boss-status, or a boss session is sending feed lines (TEST, DEFECT, TEAM, LOG, HEADER, OWNER, OUTCOME, MOOD) to publish on a status page and a conversation page.
+description: Use when this session is the status role in a boss run — the owner typed /boss-status, or a boss session is sending feed lines (TEST, DEFECT, TEAM, LOG, HEADER, OWNER, OUTCOME, MOOD, MILESTONE) to publish on a status page and a conversation page.
 ---
 
 <SUBAGENT-STOP>

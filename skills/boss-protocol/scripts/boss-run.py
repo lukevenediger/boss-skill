@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """boss-run: create, inspect and close a boss run directory (protocol.md §1).
 
-  boss-run init <id> [--title T] [--repo P] [--branch B] [--tz IANA] [--role role=session=model ...] [--force]
+  boss-run init <id> [--title T] [--repo P] [--branch B] [--tz IANA] [--role role=session=model ...] [--force] [--allow-status-model]
   boss-run close [<id>]
   boss-run show [<id>]
   boss-run set-page status|conversation <url> [--run <id>]
@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import _boss  # noqa: E402
 
-DEFAULT_ROLES = [("boss", "fable"), ("dev", "opus"), ("tester", "sonnet"), ("status", "opus")]
+DEFAULT_ROLES = [("boss", "fable"), ("dev", "opus"), ("tester", "opus"), ("status", "opus")]
 
 
 def parse_role(spec: str, run_id: str) -> dict:
@@ -33,6 +33,11 @@ def cmd_init(a) -> int:
     roles = [parse_role(r, a.id) for r in a.role] if a.role else [
         {"role": role, "session": f"{a.id}-{role}", "model": model} for role, model in DEFAULT_ROLES
     ]
+    # Status is always opus (team-proposal.md): weaker models published broken pages.
+    bad = [r for r in roles if r["role"] == "status" and not r["model"].lower().startswith("opus")]
+    if bad and not a.allow_status_model:
+        _boss.die(f"status must run on opus, got {bad[0]['model']!r} "
+                  "(pass --allow-status-model only if the owner asked for it)")
     for sub in ("evidence", "pages"):
         os.makedirs(os.path.join(rdir, sub), exist_ok=True)
     run = {
@@ -277,6 +282,7 @@ def main(argv) -> int:
     s.add_argument("--tz")
     s.add_argument("--role", action="append", metavar="role=session=model")
     s.add_argument("--force", action="store_true")
+    s.add_argument("--allow-status-model", action="store_true", help="allow a status role that is not on opus")
     s.set_defaults(fn=cmd_init)
 
     s = sub.add_parser("close")

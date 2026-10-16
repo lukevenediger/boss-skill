@@ -2,7 +2,7 @@
   "version": 7,
   "run": {
     "id": "smoke",
-    "title": "Smoke run \u2014 checkout flow",
+    "title": "Smoke run — checkout flow",
     "started": "2026-09-30",
     "tz": "Africa/Johannesburg"
   },
@@ -10,10 +10,24 @@
     "branch": "feat/checkout-totals",
     "pr": "#42 open",
     "image": "c1d2e3f4",
-    "stack": "up \u00b7 healthy",
+    "stack": "up · healthy",
     "head": "a1b2c3d",
-    "ci": "8/9 \u00b7 1 pending"
+    "ci": "8/9 · 1 pending"
   },
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "Checkout totals",
+      "acceptance": "cart totals match the ledger to the cent; tax rounding per §4.2",
+      "state": null
+    },
+    {
+      "id": "M2",
+      "title": "Refunds",
+      "acceptance": "partial and full refunds reconcile — next run",
+      "state": null
+    }
+  ],
   "phases": [
     {
       "id": "P0",
@@ -35,7 +49,8 @@
           "evidence": "image c1d2e3f4 built from a1b2c3d; md5 in container == md5 in worktree",
           "updated": "09:15"
         }
-      ]
+      ],
+      "milestone": "M1"
     },
     {
       "id": "P1",
@@ -46,7 +61,7 @@
           "title": "Cart total includes shipping and tax",
           "owner": "tester",
           "state": "fail",
-          "evidence": "expected 118.80, got 108.00 \u2014 tax line missing when shipping is free; see D1",
+          "evidence": "expected 118.80, got 108.00 — tax line missing when shipping is free; see D1",
           "updated": "09:41"
         },
         {
@@ -65,7 +80,8 @@
           "evidence": "",
           "updated": ""
         }
-      ]
+      ],
+      "milestone": "M1"
     }
   ],
   "defects": [
@@ -146,11 +162,11 @@
     },
     {
       "time": "09:41",
-      "text": "T1.1 FAIL \u2014 D1 opened (major). Tax line dropped when shipping is free.\ncmd: curl -s localhost:3000/api/cart/total\nexpected: 118.80\nactual: 108.00\nSee https://example.com/runs/smoke/evidence/T1.1-total.txt for the full response."
+      "text": "T1.1 FAIL — D1 opened (major). Tax line dropped when shipping is free.\ncmd: curl -s localhost:3000/api/cart/total\nexpected: 118.80\nactual: 108.00\nSee https://example.com/runs/smoke/evidence/T1.1-total.txt for the full response."
     },
     {
       "time": "09:50",
-      "text": "Tester held on a permission prompt while running T1.2 \u2014 owner action needed."
+      "text": "Tester held on a permission prompt while running T1.2 — owner action needed."
     }
   ],
   "remaining": "T1.2 and T1.3 still to run. D1 needs a fix, gate, and a re-test before GO.",

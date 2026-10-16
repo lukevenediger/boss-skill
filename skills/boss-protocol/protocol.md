@@ -56,6 +56,12 @@ shows, so the subject must stand alone.
 - `re:` one of `RUN` · `OWNER` · a test id `[A-Z]\d+\.\d+` (`P0.1`, `T2.3`, `V1.2`) · `D<n>` · `M<n>`. Optional `reply:M<k>` after it.
 - Roles are bare role names (`dev`, not `w1-dev`); `owner` is a valid `from` when the boss records an
   owner decision (`--from owner --to boss re:RUN`).
+- **Write for a skimming reader.** The subject is a plain-English headline, ≤ 100 chars
+  (`T1.1 PASS — migration keeps the production custodian row`); counts, shas and ids go in the body.
+  A body over 8 lines opens with `tl;dr: <one sentence: what it means / what happens next>`. Raw
+  command output always sits in a fenced `evidence` block. `boss-say` refuses a subject over 120
+  chars and warns (still sends) past 100 chars or on a long body with no `tl;dr:`. The conversation
+  page shows the subject plus the tl;dr (else the first paragraph) and folds the rest.
 - JSONL record: `{"id","ts","from","to","re","reply_to","subject","body"}`; `ts` is local time with offset
   (`2026-09-30T14:02:11+02:00`).
 
@@ -122,6 +128,7 @@ OUTCOME GO|NO-GO — <text>
 DONE <headline>              run complete: big banner on both pages, mood all-green (`DONE -` clears)
 SUMMARY did|challenge|followup <bullet>   one bullet per line, ≤ 3 per kind (`SUMMARY clear` resets)
 MOOD idle|testing|bug-found|fixing|all-green|auto
+MILESTONE <Mid> done|active|todo|auto [— <note>]   sets a milestone's state on the page (`auto` = derive)
 ```
 `<Tid>` matches `[A-Z]\d+\.\d+` (P0.1 preflight, T2.3 test, W1.2 work item …). The `—` separator may be written `--`. Unknown test
 ids are created in an "Unplanned" phase (`PX`) rather than dropped; a DEFECT transition for an unreported id
@@ -138,7 +145,8 @@ accepts) → `fix-pushed <sha>` (boss, after dev replies) → `verified` (boss, 
 ```json
 {"version":12,"run":{"id":"w1","title":"…","started":"2026-09-30","tz":"Africa/Johannesburg"},
  "header":{"branch":"…","pr":"…","image":"…","stack":"…","head":"…","ci":"…"},
- "phases":[{"id":"P0","title":"Preflight","tests":[{"id":"P0.1","title":"…","owner":"dev","state":"pass","evidence":"…","updated":"HH:MM"}]}],
+ "milestones":[{"id":"M9a","title":"…","acceptance":"…","state":null}],
+ "phases":[{"id":"P0","title":"Preflight","milestone":"M9a","tests":[{"id":"P0.1","title":"…","owner":"dev","state":"pass","evidence":"…","updated":"HH:MM"}]}],
  "defects":[{"id":"D1","sev":"minor","title":"…","owner":"dev","status":"verified","commit":"98aadda","notes":["…"]}],
  "team":[{"role":"dev","session":"w1-dev","model":"opus","state":"active","activity":"…","since":"HH:MM"}],
  "owner_calls":[{"role":"tester","command":"…","why":"…","since":"HH:MM"}],
@@ -156,6 +164,11 @@ CLI: `bash "$tools_dir/boss-state" init [--title "…"]` · `plan-import <plan.m
 
 Plan import reads `### Phase <n> — <title>` (or `### P<n> — <title>`; `—`, `--` or `-`) headings and
 `- <Tid> <owner>: <title>` lines; everything else is ignored. It also copies the plan to `<run>/plan.md`.
+Milestones: the list under a `## Milestones` heading, lines `- [ ] M<id> <title> — <acceptance>` (bold
+title optional; `[x]` → state `done`). A phase belongs to the first milestone id in its heading, else
+to the phase before it, else to `This run: M<id>`; Wrap phases without an id are run-wide (`null`).
+A milestone with `state: null` is derived on the page: every item pass → done, any verdict → active.
+A plan with no map imports `milestones: []` and the page shows no milestone panel.
 Re-import keeps existing verdicts; tests no longer in the plan move to `PX`. `init` on an existing
 state.json starts fresh (v0) — re-import and re-apply to rebuild.
 

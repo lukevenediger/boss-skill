@@ -80,7 +80,7 @@ The boss prints a block like this:
 Open these terminals, in the same permission mode as this one (auto):
 
 Terminal 2 (dev):     cd /path/to/repo && claude --model opus     then  /rename myrun-dev     then  /boss-dev myrun
-Terminal 3 (tester):  cd /path/to/repo && claude --model sonnet   then  /rename myrun-tester  then  /boss-tester myrun
+Terminal 3 (tester):  cd /path/to/repo && claude --model opus     then  /rename myrun-tester  then  /boss-tester myrun
 Terminal 4 (status):  cd /path/to/repo && claude --model opus     then  /rename myrun-status  then  /boss-status myrun
 
 Say "team up" here when all three prompts are idle.
@@ -105,6 +105,10 @@ Watch for two things:
 - **"Waiting on you"** at the top of either page. The run is blocked until you answer in the named
   terminal, whether that's a permission prompt, an approval, or a GO / NO-GO decision.
 - **Defects** moving `open → fixing → fix-pushed → verified` on the board.
+
+When the plan has a milestone map, a **Milestones** panel sits above the phases: one card per
+milestone with a progress bar, work items and checks done, phases done, the phase in progress and the
+acceptance line. Each phase on the rail shows `done/total` with a fill bar, grouped by milestone.
 
 ### 4. Let it run
 
@@ -150,6 +154,15 @@ Every message between sessions is numbered (`M1`, `M2`, …), threaded by what i
 a defect id, or the run itself), and rendered newest-first with markdown, collapsible evidence, and a
 gold badge for your own decisions.
 
+It is built to skim:
+
+- **Headline + tl;dr.** Each card shows the subject (a plain-English headline of up to 100 characters)
+  and the message's `tl;dr:` line, or its first paragraph. The rest folds under "show full message · N lines".
+- **Status traffic hidden.** The boss↔status feed and "Published v7" replies repeat what the other
+  messages say, so they are off by default; **show status traffic** brings them back.
+- **Evidence folded.** Command output goes in a collapsed evidence block, even when a role forgot to
+  fence it. **expand all** opens everything.
+
 <p align="center">
   <img src="docs/images/conversation.jpg" width="820" alt="Conversation page: thread rail on the left, numbered messages with role badges, a red-outlined NEEDS OWNER message">
 </p>
@@ -192,8 +205,9 @@ returned, who decided what, and when.
 | **status** | the two published pages | anything else; inventing a verdict |
 | **extra roles** | whatever the boss's charter says (`/boss-role <name> <run-id>`) | whatever it forbids |
 
-Models are proposed per run. Status always runs on the latest Opus. The boss runs on whatever model
-your session uses.
+Models are proposed per run. Dev and tester default to Opus (the tester judges evidence). Status
+always runs on Opus; `boss-run init` refuses anything else unless `--allow-status-model` is passed.
+The boss runs on whatever model your session uses.
 
 ## Things to know
 
@@ -238,7 +252,8 @@ skill ever asks you to close, rename or restart one.
 - **Next run:** type `/boss <goal>` in the boss terminal. The boss creates a new run id, sends each
   role `NEW RUN <id>`, and the roles re-run their own start steps for it. New pages, same sessions.
 - **Milestones:** inside a run, the boss chains from one milestone to the next by itself (ticks the
-  map, appends the next phases, re-briefs). You are not asked in between.
+  map, sends `MILESTONE M<k> done`, appends the next phases, re-briefs). You are not asked in between.
+  Put the milestone id in each phase heading (`### Phase 3 — M9b corpus`) so the page can group them.
 - **Compaction:** when a session's context fills, Claude Code compacts it automatically. The session
   keeps its name, re-orients itself with `boss-run resume`, and carries on from its last brief. The
   page shows a meter and an amber banner so you can see it coming; nothing for you to do.
